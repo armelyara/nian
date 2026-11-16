@@ -488,8 +488,7 @@
     <div class="fh">FILTRES</div>
     <label>THÈME<select id="catsel"><option value="all">Tout</option><option>Concerts</option><option>Manifestations</option><option>Incidents</option><option>Tech</option></select></label>
     <label>VILLE<select id="citysel"><option value="all">Toutes les villes</option></select></label>
-    <label>AVANT (date)<input id="timesel" type="datetime-local"/></label>
-    <button class="tbtn" id="freezebtn">FREEZE</button>
+    <label>AVANT (date)<input id="timesel" type="date" style="color-scheme:dark;accent-color:var(--accent)"/></label>
   </div>
 
   <button id="panelToggle">❮</button>
@@ -714,7 +713,7 @@
       m.innerHTML = `<div class="insp-card">
     <div class="insp-top"><span>${esc(f.source)} · ${esc(f.city)} · ${esc(f.category)}</span><span style="cursor:pointer;color:var(--faint)" onclick="NIAN.closeInspector()">✕</span></div>
     ${media}
-    <div class="insp-ctrls">${ctrls}<button class="insp-add" onclick="NIAN.addEntity()">+ AJOUTER AU DOSSIER INDICE</button></div>
+    <div class="insp-ctrls">${ctrls}</div>
     <div class="insp-meta"><div>${esc(f.text)}</div><div class="auth">Auteur : ${esc(f.author || "—")}</div><div>${fmtTs(f.ts)}</div>${f.url ? `<a href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener">Ouvrir la source ↗</a>` : ""}</div>
   </div>`;
       m.classList.add("show"); const v = document.getElementById("insp-video"); if (v) { v.muted = false; v.play().catch(() => { }); }
@@ -815,7 +814,6 @@
       $on("catsel", "change", () => { rebuildActivity(); counters(); });
       $on("citysel", "change", e => { rebuildActivity(); counters(); if (e.target.value !== "all") openCity(e.target.value); });
       $on("timesel", "change", () => { rebuildActivity(); counters(); });
-      $on("freezebtn", "click", e => { S.frozen = !S.frozen; e.target.classList.toggle("on", S.frozen); e.target.textContent = S.frozen ? "FIGÉ" : "FREEZE"; });
       $on("orbitbtn", "click", e => { S.autoRotate = !S.autoRotate; e.target.textContent = "ORBITE : " + (S.autoRotate ? "LENTE" : "PAUSE"); });
       $on("panelToggle", "click", () => { const p = document.getElementById("leftpanel"); if (!p) return; p.classList.toggle("collapsed"); document.getElementById("panelToggle").classList.toggle("shift", !p.classList.contains("collapsed")); });
       $on("backglobe", "click", backGlobe);
