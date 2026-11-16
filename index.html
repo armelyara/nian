@@ -1,396 +1,837 @@
 <!doctype html>
 <html lang="fr">
+
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Nian</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>
-  :root{
-    --bg:#080a0b; --ground:#161819; --panel:#1C1F20;
-    --border:rgba(255,255,255,.14); --border2:rgba(255,255,255,.26);
-    --txt:#B8C4C2; --faint:#6f7c80;
-    --accent:#E78D38; --accent2:#D97B22; --blue:#2E5FA3; --blue2:#74A5CC; --red:#e5443b;
-    --font:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:var(--font);overflow:hidden}
-  #scene{position:fixed;inset:0;z-index:1}
-  #feedlines{position:fixed;inset:0;z-index:5;pointer-events:none}
-  #feeds{position:fixed;inset:0;z-index:6;pointer-events:none}
-  /* ---- compact feed video card (155px) ---- */
-  .feedcard{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);transition:opacity .3s ease;
-    width:155px;background:var(--panel);border:1px solid var(--border2);box-shadow:0 6px 18px rgba(0,0,0,.55);cursor:pointer}
-  .feedcard .vwrap{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden}
-  .feedcard video,.feedcard canvas.fb{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .feedcard video{object-fit:cover}
-  .feedcard .live{position:absolute;top:4px;left:4px;font-size:7px;letter-spacing:.1em;color:#fff;background:var(--red);padding:1px 5px;z-index:2}
-  .feedcard .plat{position:absolute;top:4px;right:4px;font-size:7px;color:var(--txt);background:rgba(0,0,0,.6);padding:1px 5px;z-index:2}
-  .feedcard .vts{position:absolute;bottom:4px;left:4px;font-size:7px;color:#dfe8e6;background:rgba(0,0,0,.6);padding:1px 5px;z-index:2}
-  .feedcard .cap{font-size:9px;line-height:1.35;color:var(--txt);padding:5px 7px;max-height:34px;overflow:hidden}
-  /* ---- top bar ---- */
-  header#topbar{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-    padding:9px 14px;background:linear-gradient(180deg,rgba(8,10,11,.94),rgba(8,10,11,.35))}
-  #topbar .brand{font-size:15px;letter-spacing:.42em;color:var(--accent);font-weight:700}
-  #topbar select,#topbar input{background:var(--panel);border:1px solid var(--border);color:var(--txt);
-    font-family:var(--font);font-size:11px;padding:5px 8px;outline:none;color-scheme:dark;accent-color:var(--accent)}
-  .tbtn{background:var(--panel);border:1px solid var(--border);color:var(--txt);font-family:var(--font);
-    font-size:10px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
-  .tbtn.on{background:var(--accent);color:#1a1205;border-color:var(--accent)}
-  /* ---- left panel ---- */
-  aside#leftpanel{position:fixed;top:52px;left:0;bottom:0;z-index:38;width:300px;max-width:84vw;
-    background:rgba(22,24,25,.92);border-right:1px solid var(--border2);backdrop-filter:blur(10px);
-    transform:translateX(0);transition:transform .3s ease;overflow-y:auto}
-  aside#leftpanel.collapsed{transform:translateX(-100%)}
-  #panelToggle{position:fixed;top:60px;left:0;z-index:39;background:var(--panel);border:1px solid var(--border2);border-left:0;
-    color:var(--accent);font-family:var(--font);font-size:14px;padding:8px 7px;cursor:pointer;transition:left .3s ease}
-  #panelToggle.shift{left:300px}
-  .lp-pad{padding:14px 15px}
-  .lp-h{font-size:9px;letter-spacing:.2em;color:var(--blue2);margin:14px 0 6px}
-  .lp-title{font-size:16px;letter-spacing:.06em;color:var(--accent)}
-  .srcrow{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)}
-  footer#bottombar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;gap:18px;justify-content:center;
-    padding:6px 14px;background:linear-gradient(0deg,rgba(8,10,11,.9),rgba(8,10,11,.15));font-size:10px;letter-spacing:.1em}
-  footer .cnt{color:var(--faint)} footer .cnt b{font-weight:700}
-  #orbitbtn{position:fixed;right:16px;bottom:38px;z-index:40;background:var(--panel);border:1px solid var(--border2);
-    color:var(--txt);font-family:var(--font);font-size:10px;letter-spacing:.1em;padding:7px 12px;cursor:pointer}
-  /* ---- Leaflet city view ---- */
-  #city-view{position:fixed;inset:0;z-index:25;display:none}
-  #city-view.show{display:block}
-  #citymap{position:absolute;inset:0;background:#0c1113;z-index:1}
-  .leaflet-tile-pane{filter:grayscale(100%) contrast(120%) brightness(90%)}
-  #cityLines{position:absolute;inset:0;z-index:2;pointer-events:none;width:100%;height:100%}
-  #cityCallouts{position:absolute;inset:0;z-index:3;pointer-events:none}
-  #cityCallouts .feedcard{pointer-events:auto}
-  #cityhead{position:absolute;top:58px;left:24px;z-index:5}
-  #cityhead .ct{font-size:20px;letter-spacing:.14em;color:var(--accent);text-shadow:0 2px 10px #000}
-  #backglobe{margin-top:10px;background:var(--panel);border:1px solid var(--accent);color:var(--accent);
-    font-family:var(--font);font-size:10px;letter-spacing:.12em;padding:8px 12px;cursor:pointer}
-  #backglobe:hover{background:var(--accent);color:#1a1205}
-  /* ---- inspector ---- */
-  #inspector{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(4,6,7,.82);backdrop-filter:blur(4px)}
-  #inspector.show{display:flex}
-  #inspector.show .insp-card{animation:inszoom .22s ease}
-  @keyframes inszoom{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
-  .insp-card{width:720px;max-width:94vw;background:var(--panel);border:1px solid var(--accent);
-    box-shadow:0 0 0 1px rgba(231,141,56,.25),0 0 55px rgba(231,141,56,.22),0 24px 60px rgba(0,0,0,.72)}
-  .insp-top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:11px;letter-spacing:.1em;color:var(--accent);border-bottom:1px solid var(--border)}
-  .insp-ctrls{display:flex;gap:8px;padding:8px 14px;flex-wrap:wrap}
-  .insp-ctrls button{background:transparent;border:1px solid var(--border2);color:var(--txt);font-family:var(--font);font-size:10px;padding:5px 10px;cursor:pointer}
-  .insp-add{border-color:var(--accent)!important;color:var(--accent)!important}
-  .insp-add:hover{background:var(--accent)!important;color:#1a1205!important}
-  .insp-meta{padding:2px 14px 16px;font-size:11px;color:var(--txt);line-height:1.6}
-  .insp-meta .auth{color:var(--blue2)} .insp-meta a{color:var(--accent)}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nian</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --bg: #080a0b;
+      --ground: #161819;
+      --panel: #1C1F20;
+      --border: rgba(255, 255, 255, .14);
+      --border2: rgba(255, 255, 255, .26);
+      --txt: #B8C4C2;
+      --faint: #6f7c80;
+      --accent: #E78D38;
+      --accent2: #D97B22;
+      --blue: #2E5FA3;
+      --blue2: #74A5CC;
+      --red: #e5443b;
+      --font: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--txt);
+      font-family: var(--font);
+      overflow: hidden
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      z-index: 1
+    }
+
+    #feedlines {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none
+    }
+
+    #feeds {
+      position: fixed;
+      inset: 0;
+      z-index: 6;
+      pointer-events: none
+    }
+
+    /* ---- compact feed video card (155px) ---- */
+    .feedcard {
+      position: absolute;
+      pointer-events: auto;
+      transform: translate(-50%, -50%);
+      transition: opacity .3s ease;
+      width: 155px;
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .55);
+      cursor: pointer
+    }
+
+    .feedcard .vwrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      overflow: hidden
+    }
+
+    .feedcard video,
+    .feedcard canvas.fb {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block
+    }
+
+    .feedcard video {
+      object-fit: cover
+    }
+
+    .feedcard .live {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      font-size: 7px;
+      letter-spacing: .1em;
+      color: #fff;
+      background: var(--red);
+      padding: 1px 5px;
+      z-index: 2
+    }
+
+    .feedcard .plat {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      font-size: 7px;
+      color: var(--txt);
+      background: rgba(0, 0, 0, .6);
+      padding: 1px 5px;
+      z-index: 2
+    }
+
+    .feedcard .vts {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      font-size: 7px;
+      color: #dfe8e6;
+      background: rgba(0, 0, 0, .6);
+      padding: 1px 5px;
+      z-index: 2
+    }
+
+    .feedcard .cap {
+      font-size: 9px;
+      line-height: 1.35;
+      color: var(--txt);
+      padding: 5px 7px;
+      max-height: 34px;
+      overflow: hidden
+    }
+
+    /* ---- top bar ---- */
+    header#topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 40;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 9px 14px;
+      background: linear-gradient(180deg, rgba(8, 10, 11, .94), rgba(8, 10, 11, .35))
+    }
+
+    #topbar .brand {
+      font-size: 15px;
+      letter-spacing: .42em;
+      color: var(--accent);
+      font-weight: 700
+    }
+
+    #topbar select,
+    #topbar input {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--txt);
+      font-family: var(--font);
+      font-size: 11px;
+      padding: 5px 8px;
+      outline: none;
+      color-scheme: dark;
+      accent-color: var(--accent)
+    }
+
+    .tbtn {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--txt);
+      font-family: var(--font);
+      font-size: 10px;
+      letter-spacing: .1em;
+      padding: 6px 11px;
+      cursor: pointer
+    }
+
+    .tbtn.on {
+      background: var(--accent);
+      color: #1a1205;
+      border-color: var(--accent)
+    }
+
+    /* ---- left panel ---- */
+    aside#leftpanel {
+      position: fixed;
+      top: 52px;
+      left: 0;
+      bottom: 0;
+      z-index: 38;
+      width: 300px;
+      max-width: 84vw;
+      background: rgba(22, 24, 25, .92);
+      border-right: 1px solid var(--border2);
+      backdrop-filter: blur(10px);
+      transform: translateX(0);
+      transition: transform .3s ease;
+      overflow-y: auto
+    }
+
+    aside#leftpanel.collapsed {
+      transform: translateX(-100%)
+    }
+
+    #panelToggle {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      z-index: 39;
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      border-left: 0;
+      color: var(--accent);
+      font-family: var(--font);
+      font-size: 14px;
+      padding: 8px 7px;
+      cursor: pointer;
+      transition: left .3s ease
+    }
+
+    #panelToggle.shift {
+      left: 300px
+    }
+
+    .lp-pad {
+      padding: 14px 15px
+    }
+
+    .lp-h {
+      font-size: 9px;
+      letter-spacing: .2em;
+      color: var(--blue2);
+      margin: 14px 0 6px
+    }
+
+    .lp-title {
+      font-size: 16px;
+      letter-spacing: .06em;
+      color: var(--accent)
+    }
+
+    .srcrow {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .07)
+    }
+
+    footer#bottombar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      display: flex;
+      gap: 18px;
+      justify-content: center;
+      padding: 6px 14px;
+      background: linear-gradient(0deg, rgba(8, 10, 11, .9), rgba(8, 10, 11, .15));
+      font-size: 10px;
+      letter-spacing: .1em
+    }
+
+    footer .cnt {
+      color: var(--faint)
+    }
+
+    footer .cnt b {
+      font-weight: 700
+    }
+
+    #orbitbtn {
+      position: fixed;
+      right: 16px;
+      bottom: 38px;
+      z-index: 40;
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      color: var(--txt);
+      font-family: var(--font);
+      font-size: 10px;
+      letter-spacing: .1em;
+      padding: 7px 12px;
+      cursor: pointer
+    }
+
+    /* ---- Leaflet city view ---- */
+    #city-view {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none
+    }
+
+    #city-view.show {
+      display: block
+    }
+
+    #citymap {
+      position: absolute;
+      inset: 0;
+      background: #0c1113;
+      z-index: 1
+    }
+
+    .leaflet-tile-pane {
+      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%) grayscale(40%)
+    }
+
+    #cityLines {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      width: 100%;
+      height: 100%
+    }
+
+    #cityCallouts {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none
+    }
+
+    #cityCallouts .feedcard {
+      pointer-events: auto
+    }
+
+    #cityhead {
+      position: absolute;
+      top: 58px;
+      left: 24px;
+      z-index: 5
+    }
+
+    #cityhead .ct {
+      font-size: 20px;
+      letter-spacing: .14em;
+      color: var(--accent);
+      text-shadow: 0 2px 10px #000
+    }
+
+    #backglobe {
+      margin-top: 10px;
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: var(--font);
+      font-size: 10px;
+      letter-spacing: .12em;
+      padding: 8px 12px;
+      cursor: pointer
+    }
+
+    #backglobe:hover {
+      background: var(--accent);
+      color: #1a1205
+    }
+
+    /* ---- inspector ---- */
+    #inspector {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 6, 7, .82);
+      backdrop-filter: blur(4px)
+    }
+
+    #inspector.show {
+      display: flex
+    }
+
+    #inspector.show .insp-card {
+      animation: inszoom .22s ease
+    }
+
+    @keyframes inszoom {
+      from {
+        transform: scale(.92);
+        opacity: 0
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1
+      }
+    }
+
+    .insp-card {
+      width: 720px;
+      max-width: 94vw;
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      box-shadow: 0 0 0 1px rgba(231, 141, 56, .25), 0 0 55px rgba(231, 141, 56, .22), 0 24px 60px rgba(0, 0, 0, .72)
+    }
+
+    .insp-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border)
+    }
+
+    .insp-ctrls {
+      display: flex;
+      gap: 8px;
+      padding: 8px 14px;
+      flex-wrap: wrap
+    }
+
+    .insp-ctrls button {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--txt);
+      font-family: var(--font);
+      font-size: 10px;
+      padding: 5px 10px;
+      cursor: pointer
+    }
+
+    .insp-add {
+      border-color: var(--accent) !important;
+      color: var(--accent) !important
+    }
+
+    .insp-add:hover {
+      background: var(--accent) !important;
+      color: #1a1205 !important
+    }
+
+    .insp-meta {
+      padding: 2px 14px 16px;
+      font-size: 11px;
+      color: var(--txt);
+      line-height: 1.6
+    }
+
+    .insp-meta .auth {
+      color: var(--blue2)
+    }
+
+    .insp-meta a {
+      color: var(--accent)
+    }
+    .searchwrap{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);padding:6px 11px;flex:0 1 440px;min-width:220px}
+  .searchwrap input{background:transparent;border:0;color:var(--txt);font-family:var(--font);font-size:12px;outline:none;width:100%}
+  .loupe{color:var(--faint);flex:0 0 auto}
+  .iconbtn{background:var(--panel);border:1px solid var(--border);color:var(--txt);font-family:var(--font);font-size:14px;padding:5px 10px;cursor:pointer}
+  #filters{position:fixed;top:50px;right:14px;z-index:55;width:230px;background:var(--panel);border:1px solid var(--border2);backdrop-filter:blur(10px);padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+  #filters.hidden{display:none}
+  #filters .fh{font-size:10px;letter-spacing:.2em;color:var(--blue2)}
+  #filters label{display:flex;flex-direction:column;gap:4px;font-size:9px;letter-spacing:.12em;color:var(--faint)}
+  #filters select,#filters input{background:var(--panel);border:1px solid var(--border);color:var(--txt);font-family:var(--font);font-size:11px;padding:5px 7px;color-scheme:dark;accent-color:var(--accent)}
 </style>
 </head>
+
 <body>
-<div id="scene"></div>
-<svg id="feedlines"></svg>
-<div id="feeds"></div>
+  <div id="scene"></div>
+  <svg id="feedlines"></svg>
+  <div id="feeds"></div>
 
-<header id="topbar">
-  <span class="brand">NIAN</span>
-  <select id="catsel" title="Thème"><option value="all">Tout</option><option>Concerts</option><option>Manifestations</option><option>Incidents</option><option>Tech</option></select>
-  <select id="citysel" title="Ville"><option value="all">Toutes les villes</option></select>
-  <input id="timesel" type="datetime-local" title="Avant"/>
-  <button class="tbtn" id="freezebtn">FREEZE</button>
-</header>
+  <header id="topbar">
+    <span class="brand">NIAN</span>
+    <div class="searchwrap">
+      <svg class="loupe" viewBox="0 0 16 16" width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="15" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>
+      <input id="search" placeholder="Rechercher un lieu + sujet (ex: France élection)"/>
+    </div>
+    <button class="iconbtn" id="filtersbtn" title="Filtres">⚙</button>
+  </header>
+  <div id="filters" class="hidden">
+    <div class="fh">FILTRES</div>
+    <label>THÈME<select id="catsel"><option value="all">Tout</option><option>Concerts</option><option>Manifestations</option><option>Incidents</option><option>Tech</option></select></label>
+    <label>VILLE<select id="citysel"><option value="all">Toutes les villes</option></select></label>
+    <label>AVANT (date)<input id="timesel" type="datetime-local"/></label>
+    <button class="tbtn" id="freezebtn">FREEZE</button>
+  </div>
 
-<button id="panelToggle">❮</button>
-<aside id="leftpanel"><div class="lp-pad" id="lpbody">
-  <div class="lp-title">NIAN</div><div class="lp-h">ÉTAT</div>
-  <div style="font-size:11px;color:var(--faint)">Clic sur une ville (globe) pour la carte tactique, ou sur un flux pour l'inspecter.</div>
-</div></aside>
+  <button id="panelToggle">❮</button>
+  <aside id="leftpanel">
+    <div class="lp-pad" id="lpbody">
+      <div class="lp-title">NIAN</div>
+      <div class="lp-h">ÉTAT</div>
+      <div style="font-size:11px;color:var(--faint)">Clic sur une ville (globe) pour la carte tactique, ou sur un flux
+        pour l'inspecter.</div>
+    </div>
+  </aside>
 
-<footer id="bottombar"></footer>
-<button id="orbitbtn">ORBITE : LENTE</button>
+  <footer id="bottombar"></footer>
+  <button id="orbitbtn">ORBITE : LENTE</button>
 
-<div id="city-view">
-  <div id="citymap"></div>
-  <svg id="cityLines"></svg>
-  <div id="cityCallouts"></div>
-  <div id="cityhead"><div class="ct" id="cityname">VILLE</div><button id="backglobe">← RETOUR GLOBE</button></div>
-</div>
+  <div id="city-view">
+    <div id="citymap"></div>
+    <svg id="cityLines"></svg>
+    <div id="cityCallouts"></div>
+    <div id="cityhead">
+      <div class="ct" id="cityname">VILLE</div><button id="backglobe">← RETOUR GLOBE</button>
+    </div>
+  </div>
 
-<div id="inspector"></div>
+  <div id="inspector"></div>
 
-<script>
-/* ---------------- Config & demo data ---------------- */
-const VIDEO_URLS = [
-  "https://www.w3schools.com/html/mov_bbb.mp4",
-  "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
-  "https://media.w3.org/2010/05/bunny/trailer.mp4",
-  "https://media.w3.org/2010/05/video/movie_300.mp4",
-  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-];
-window.INDICE_GEO_CONFIG = {
-  cities: {
-    "Singapour": { lat: 1.3521, lon: 103.8198 }, "Abidjan": { lat: 5.3599, lon: -4.0083 },
-    "Montréal": { lat: 45.5019, lon: -73.5674 }, "Paris": { lat: 48.8566, lon: 2.3522 }, "Tokyo": { lat: 35.6762, lon: 139.6503 }
-  },
-  categories: ["Concerts", "Manifestations", "Incidents", "Tech"],
-  catColor: { "Concerts": "#E78D38", "Manifestations": "#D97B22", "Incidents": "#e5443b", "Tech": "#74A5CC" },
-  feeds: []
-};
-(function seed() {
-  const C = window.INDICE_GEO_CONFIG.cities, cats = window.INDICE_GEO_CONFIG.categories;
-  const srcs = ["X", "Instagram", "TikTok", "YouTube"], auth = ["@live_report", "@onsite_cam", "@city_pulse", "@field_stream"];
-  const caps = { "Paris": "Place de la République — cortège", "Abidjan": "Le Plateau — Bd Houphouët-Boigny",
-    "Singapour": "Marina Bay — foule en soirée", "Montréal": "Quartier des spectacles — scène", "Tokyo": "Shibuya — carrefour" };
-  let i = 0; const out = [];
-  Object.keys(C).forEach(city => { for (let k = 0; k < 2; k++) { i++;
-    out.push({ id: "seed" + i, source: srcs[i % srcs.length], city: city,
-      lat: C[city].lat + (Math.random() - .5) * .06, lon: C[city].lon + (Math.random() - .5) * .06,
-      category: cats[i % cats.length], text: caps[city] || (city + " — direct"), author: auth[i % auth.length], url: "",
-      video: VIDEO_URLS[i % VIDEO_URLS.length], ts: new Date(Date.now() - Math.random() * 6e6).toISOString().slice(0, 19).replace("T", " ") }); } });
-  window.INDICE_GEO_CONFIG.feeds = out;
-})();
+  <script>
+    /* ---------------- Config & demo data ---------------- */
+    const VIDEO_URLS = [
+      "https://www.w3schools.com/html/mov_bbb.mp4",
+      "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+      "https://media.w3.org/2010/05/bunny/trailer.mp4",
+      "https://media.w3.org/2010/05/video/movie_300.mp4",
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+    ];
+    window.INDICE_GEO_CONFIG = {
+      cities: {
+        "Singapour": { lat: 1.3521, lon: 103.8198 }, "Abidjan": { lat: 5.3599, lon: -4.0083 },
+        "Montréal": { lat: 45.5019, lon: -73.5674 }, "Paris": { lat: 48.8566, lon: 2.3522 }, "Tokyo": { lat: 35.6762, lon: 139.6503 }
+      },
+      categories: ["Concerts", "Manifestations", "Incidents", "Tech"],
+      catColor: { "Concerts": "#E78D38", "Manifestations": "#D97B22", "Incidents": "#e5443b", "Tech": "#74A5CC" },
+      feeds: []
+    };
+    (function seed() {
+      const C = window.INDICE_GEO_CONFIG.cities, cats = window.INDICE_GEO_CONFIG.categories;
+      const srcs = ["X", "Instagram", "TikTok", "YouTube"], auth = ["@live_report", "@onsite_cam", "@city_pulse", "@field_stream"];
+      const caps = {
+        "Paris": "Place de la République — cortège", "Abidjan": "Le Plateau — Bd Houphouët-Boigny",
+        "Singapour": "Marina Bay — foule en soirée", "Montréal": "Quartier des spectacles — scène", "Tokyo": "Shibuya — carrefour"
+      };
+      let i = 0; const out = [];
+      Object.keys(C).forEach(city => {
+        for (let k = 0; k < 2; k++) {
+          i++;
+          out.push({
+            id: "seed" + i, source: srcs[i % srcs.length], city: city,
+            lat: C[city].lat + (Math.random() - .5) * .06, lon: C[city].lon + (Math.random() - .5) * .06,
+            category: cats[i % cats.length], text: caps[city] || (city + " — direct"), author: auth[i % auth.length], url: "",
+            video: VIDEO_URLS[i % VIDEO_URLS.length], ts: new Date(Date.now() - Math.random() * 6e6).toISOString().slice(0, 19).replace("T", " ")
+          });
+        }
+      });
+      window.INDICE_GEO_CONFIG.feeds = out;
+    })();
 
-/* ---------------- Helpers ---------------- */
-function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
-function safeUrl(u) { u = u || ""; const s = u.slice(0, 8).toLowerCase(); return (s.indexOf("http://") === 0 || s.indexOf("https://") === 0) ? u : "#"; }
-const MONTHS = ["JAN", "FÉV", "MAR", "AVR", "MAI", "JUIN", "JUIL", "AOÛT", "SEP", "OCT", "NOV", "DÉC"];
-function fmtTs(ts) { const d = new Date(String(ts || "").replace(" ", "T")); if (isNaN(d.getTime())) return esc(ts || ""); const p = n => String(n).padStart(2, "0"); return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear() + " • " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()); }
+    /* ---------------- Helpers ---------------- */
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+    function safeUrl(u) { u = u || ""; const s = u.slice(0, 8).toLowerCase(); return (s.indexOf("http://") === 0 || s.indexOf("https://") === 0) ? u : "#"; }
+    const MONTHS = ["JAN", "FÉV", "MAR", "AVR", "MAI", "JUIN", "JUIL", "AOÛT", "SEP", "OCT", "NOV", "DÉC"];
+    function fmtTs(ts) { const d = new Date(String(ts || "").replace(" ", "T")); if (isNaN(d.getTime())) return esc(ts || ""); const p = n => String(n).padStart(2, "0"); return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear() + " • " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()); }
 
-/* ---------------- Canvas radar fallback ---------------- */
-const FALLBACKS = new Set();
-function tickFallbacks(t) {
-  FALLBACKS.forEach(el => {
-    if (!document.body.contains(el)) { FALLBACKS.delete(el); return; }
-    if (el.style.opacity === "0") return;
-    const cvs = el._fb; if (!cvs) return;
-    const w = cvs.clientWidth || 155, h = cvs.clientHeight || 87; if (cvs.width !== w) { cvs.width = w; cvs.height = h; }
-    const ctx = cvs.getContext("2d"); ctx.fillStyle = "#0a0f12"; ctx.fillRect(0, 0, w, h);
-    const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 3;
-    ctx.strokeStyle = "rgba(231,141,56,0.22)"; for (let r = R; r > 0; r -= R / 3) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke(); }
-    const a = (t / 900) % (Math.PI * 2);
-    ctx.strokeStyle = "#E78D38"; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
-    ctx.fillStyle = "rgba(231,141,56,0.8)"; ctx.beginPath(); ctx.arc(cx + Math.cos(a * 1.7) * R * .6, cy + Math.sin(a * 1.7) * R * .6, 1.6, 0, 7); ctx.fill();
-  });
-  requestAnimationFrame(tickFallbacks);
-}
-requestAnimationFrame(tickFallbacks);
-
-/* ---------------- Feed video card ---------------- */
-function buildFeedCard(f) {
-  const el = document.createElement("div"); el.className = "feedcard"; el.dataset.id = f.id;
-  el.innerHTML = `<div class="vwrap"><canvas class="fb"></canvas><video src="${esc(f.video)}" autoplay muted loop playsinline preload="auto"></video>
-    <div class="live">● LIVE</div><div class="plat">${esc(f.source)}·${esc(f.city)}</div><div class="vts">${fmtTs(f.ts)}</div></div>
-    <div class="cap">${esc(f.text)}</div>`;
-  const v = el.querySelector("video"); el._video = v; el._fb = el.querySelector("canvas");
-  FALLBACKS.add(el); // radar shows until the video actually plays
-  v.addEventListener("playing", () => { el._fb.style.display = "none"; FALLBACKS.delete(el); });
-  v.addEventListener("error", () => { el._fb.style.display = "block"; FALLBACKS.add(el); });
-  if (v.play) v.play().catch(() => { el._fb.style.display = "block"; FALLBACKS.add(el); });
-  el.addEventListener("click", ev => { ev.stopPropagation(); openInspector(f); });
-  return el;
-}
-
-/* ---------------- Three globe ---------------- */
-const R = 2, S = { frozen: false, autoRotate: true, city: null, _down: null, inspItem: null };
-let scene, camera, renderer, controls, globe, cityMeshes = [], spikeGroup;
-function llToVec(lat, lon, r) { const phi = (90 - lat) * Math.PI / 180, th = (lon + 180) * Math.PI / 180; return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)); }
-function globeTexture(geo) {
-  const W = 2048, H = 1024, cv = document.createElement("canvas"); cv.width = W; cv.height = H; const ctx = cv.getContext("2d");
-  ctx.fillStyle = "#0c1113"; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "rgba(120,132,138,0.06)"; ctx.lineWidth = 1;
-  for (let lon = -180; lon <= 180; lon += 30) { const x = (lon + 180) / 360 * W; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let lat = -90; lat <= 90; lat += 30) { const y = (90 - lat) / 180 * H; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  const proj = p => [(p[0] + 180) / 360 * W, (90 - p[1]) / 180 * H];
-  ctx.fillStyle = "#3e4447"; ctx.strokeStyle = "#78848a"; ctx.lineWidth = 1.1;
-  (geo.features || []).forEach(f => { const g = f.geometry; if (!g) return; const polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []; polys.forEach(poly => { ctx.beginPath(); poly.forEach(ring => ring.forEach((pt, i) => { const q = proj(pt); if (i === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]); })); ctx.closePath(); ctx.fill(); ctx.stroke(); }); });
-  const t = new THREE.CanvasTexture(cv); t.anisotropy = 4; return t;
-}
-function initThree(geo) {
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100); camera.position.set(0, 1.4, 5.2);
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
-  document.getElementById("scene").appendChild(renderer.domElement);
-  const sg = new THREE.BufferGeometry(), N = 1600, pos = new Float32Array(N * 3);
-  for (let i = 0; i < N; i++) { const v = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize().multiplyScalar(40 + Math.random() * 30); pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; }
-  sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0x8aa0a4, size: 0.08, transparent: true, opacity: .5 })));
-  globe = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 64), new THREE.MeshBasicMaterial({ map: globeTexture(geo) })); scene.add(globe);
-  const atm = new THREE.Mesh(new THREE.SphereGeometry(R * 1.06, 48, 48), new THREE.ShaderMaterial({ transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending,
-    vertexShader: "varying vec3 vN; void main(){ vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} ",
-    fragmentShader: "varying vec3 vN; void main(){ float i=pow(0.62-dot(vN,vec3(0,0,1.0)),2.0); gl_FragColor=vec4(0.45,0.60,0.75,1.0)*i*0.9; }" })); scene.add(atm);
-  spikeGroup = new THREE.Group(); scene.add(spikeGroup);
-  Object.keys(window.INDICE_GEO_CONFIG.cities).forEach(city => { const c = window.INDICE_GEO_CONFIG.cities[city];
-    const m = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 12), new THREE.MeshBasicMaterial({ color: 0xE78D38 }));
-    m.position.copy(llToVec(c.lat, c.lon, R * 1.01)); m.userData.city = city; cityMeshes.push(m); scene.add(m); });
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true; controls.dampingFactor = .08; controls.minDistance = 3; controls.maxDistance = 9;
-  controls.autoRotate = true; controls.autoRotateSpeed = 0.35; controls.enablePan = false;
-  addEventListener("resize", onResize);
-  renderer.domElement.addEventListener("pointerdown", e => { S._down = { x: e.clientX, y: e.clientY }; });
-  renderer.domElement.addEventListener("pointerup", onPointerUp);
-  rebuildActivity(); animate();
-}
-function onResize() { if (!renderer) return; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); }
-function onPointerUp(e) {
-  if (S.city || !S._down) { S._down = null; return; }
-  const moved = Math.hypot(e.clientX - S._down.x, e.clientY - S._down.y); S._down = null; if (moved > 6) return;
-  const r = renderer.domElement.getBoundingClientRect();
-  const mouse = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  const ray = new THREE.Raycaster(); ray.setFromCamera(mouse, camera);
-  const hit = ray.intersectObjects(cityMeshes); if (hit.length) openCity(hit[0].object.userData.city);
-}
-function activeCities() { const set = {}; filtered().forEach(f => set[f.city] = (set[f.city] || 0) + 1); return set; }
-function rebuildActivity() {
-  if (!spikeGroup) return; while (spikeGroup.children.length) spikeGroup.remove(spikeGroup.children[0]);
-  const act = activeCities(), cfg = window.INDICE_GEO_CONFIG;
-  Object.keys(act).forEach(city => { const c = cfg.cities[city]; if (!c) return;
-    const g = new THREE.BufferGeometry().setFromPoints([llToVec(c.lat, c.lon, R), llToVec(c.lat, c.lon, R + 0.12 + Math.min(act[city], 6) * 0.05)]);
-    spikeGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xE78D38, transparent: true, opacity: .9 }))); });
-}
-function filtered() {
-  const cat = document.getElementById("catsel").value, city = document.getElementById("citysel").value, tv = document.getElementById("timesel").value;
-  const tmax = tv ? new Date(tv).getTime() : null;
-  return (window.INDICE_GEO_CONFIG.feeds || []).filter(f => {
-    if (cat !== "all" && f.category !== cat) return false;
-    if (city !== "all" && f.city !== city) return false;
-    if (tmax && new Date(String(f.ts || "").replace(" ", "T")).getTime() > tmax) return false; return true; });
-}
-
-/* ---------------- Globe overlay (dotted line to card edge, dot<0.25) ---------------- */
-const cardEls = {};
-function overlay() {
-  if (!renderer || S.city) return;
-  const svg = document.getElementById("feedlines"); svg.setAttribute("viewBox", "0 0 " + innerWidth + " " + innerHeight);
-  const feeds = filtered().slice(-8); const want = {}; feeds.forEach(f => want[f.id] = f);
-  Object.keys(cardEls).forEach(id => { if (!want[id]) { cardEls[id].remove(); delete cardEls[id]; } });
-  const camDir = camera.position.clone().normalize();
-  const panelW = document.getElementById("leftpanel").classList.contains("collapsed") ? 0 : 300;
-  let lines = "";
-  feeds.forEach(f => {
-    const surf = llToVec(f.lat, f.lon, R * 1.02);
-    const dot = surf.clone().normalize().dot(camDir);
-    const ndc = surf.clone().project(camera);
-    const sx = (ndc.x * .5 + .5) * innerWidth, sy = (-ndc.y * .5 + .5) * innerHeight;
-    let el = cardEls[f.id]; if (!el) { el = buildFeedCard(f); cardEls[f.id] = el; document.getElementById("feeds").appendChild(el); }
-    const cx = Math.min(innerWidth - 90, Math.max(panelW + 90, sx + 78)), cy = Math.min(innerHeight - 70, Math.max(80, sy - 60));
-    const nearPanel = cx - 78 < panelW + 10;
-    const show = dot > 0.25 && !nearPanel && ndc.z < 1;
-    el.style.opacity = show ? "1" : "0"; el.style.pointerEvents = show ? "auto" : "none";
-    if (el._video && !el._fbOn) { if (show && el._video.paused) el._video.play().catch(() => {}); else if (!show && !el._video.paused) el._video.pause(); }
-    if (show) {
-      el.style.left = cx + "px"; el.style.top = cy + "px";
-      const edge = cx >= sx ? cx - 78 : cx + 78;
-      lines += `<line x1="${sx}" y1="${sy}" x2="${edge}" y2="${cy}" stroke="rgba(255,255,255,0.55)" stroke-width="1" stroke-dasharray="3 3"/><circle cx="${sx}" cy="${sy}" r="2.4" fill="#E78D38"/>`;
+    /* ---------------- Canvas radar fallback ---------------- */
+    const FALLBACKS = new Set();
+    function tickFallbacks(t) {
+      FALLBACKS.forEach(el => {
+        if (!document.body.contains(el)) { FALLBACKS.delete(el); return; }
+        if (el.style.opacity === "0") return;
+        const cvs = el._fb; if (!cvs) return;
+        const w = cvs.clientWidth || 155, h = cvs.clientHeight || 87; if (cvs.width !== w) { cvs.width = w; cvs.height = h; }
+        const ctx = cvs.getContext("2d"); ctx.fillStyle = "#0a0f12"; ctx.fillRect(0, 0, w, h);
+        const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 3;
+        ctx.strokeStyle = "rgba(231,141,56,0.22)"; for (let r = R; r > 0; r -= R / 3) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke(); }
+        const a = (t / 900) % (Math.PI * 2);
+        ctx.strokeStyle = "#E78D38"; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
+        ctx.fillStyle = "rgba(231,141,56,0.8)"; ctx.beginPath(); ctx.arc(cx + Math.cos(a * 1.7) * R * .6, cy + Math.sin(a * 1.7) * R * .6, 1.6, 0, 7); ctx.fill();
+      });
+      requestAnimationFrame(tickFallbacks);
     }
-  });
-  svg.innerHTML = lines;
-}
-function animate() { requestAnimationFrame(animate); if (controls) { controls.autoRotate = S.autoRotate && !S.city; controls.update(); } if (renderer && !S.city) renderer.render(scene, camera); overlay(); }
+    requestAnimationFrame(tickFallbacks);
 
-/* ---------------- Inspector ---------------- */
-function openInspector(f) {
-  S.inspItem = f; const m = document.getElementById("inspector");
-  m.innerHTML = `<div class="insp-card">
+    /* ---------------- Feed video card ---------------- */
+    function buildFeedCard(f) {
+      const el = document.createElement("div"); el.className = "feedcard"; el.dataset.id = f.id;
+      const media = f.embed
+        ? `<iframe src="${esc(f.embed)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen frameborder="0" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>`
+        : `<canvas class="fb"></canvas><video src="${esc(f.video)}" autoplay muted loop playsinline preload="auto"></video>`;
+      el.innerHTML = `<div class="vwrap">${media}<div class="plat">${esc(f.source)}·${esc(f.city)}</div><div class="vts">${fmtTs(f.ts)}</div></div><div class="cap">${esc(f.text)}</div>`;
+      if (!f.embed) {
+        const v = el.querySelector("video"); el._video = v; el._fb = el.querySelector("canvas");
+        FALLBACKS.add(el);
+        v.addEventListener("playing", () => { el._fb.style.display = "none"; FALLBACKS.delete(el); });
+        v.addEventListener("error", () => { el._fb.style.display = "block"; FALLBACKS.add(el); });
+        if (v.play) v.play().catch(() => { el._fb.style.display = "block"; FALLBACKS.add(el); });
+      }
+      el.addEventListener("click", ev => { ev.stopPropagation(); openInspector(f); });
+      return el;
+    }
+
+    /* ---------------- Three globe ---------------- */
+    const R = 2, S = { frozen: false, autoRotate: true, city: null, _down: null, inspItem: null };
+    let scene, camera, renderer, controls, globe, cityMeshes = [], spikeGroup;
+    function llToVec(lat, lon, r) { const phi = (90 - lat) * Math.PI / 180, th = (lon + 180) * Math.PI / 180; return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)); }
+    function globeTexture(geo) {
+      const W = 2048, H = 1024, cv = document.createElement("canvas"); cv.width = W; cv.height = H; const ctx = cv.getContext("2d");
+      ctx.fillStyle = "#0c1113"; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(120,132,138,0.06)"; ctx.lineWidth = 1;
+      for (let lon = -180; lon <= 180; lon += 30) { const x = (lon + 180) / 360 * W; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let lat = -90; lat <= 90; lat += 30) { const y = (90 - lat) / 180 * H; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      const proj = p => [(p[0] + 180) / 360 * W, (90 - p[1]) / 180 * H];
+      ctx.fillStyle = "#3e4447"; ctx.strokeStyle = "#78848a"; ctx.lineWidth = 1.1;
+      (geo.features || []).forEach(f => { const g = f.geometry; if (!g) return; const polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []; polys.forEach(poly => { ctx.beginPath(); poly.forEach(ring => ring.forEach((pt, i) => { const q = proj(pt); if (i === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]); })); ctx.closePath(); ctx.fill(); ctx.stroke(); }); });
+      const t = new THREE.CanvasTexture(cv); t.anisotropy = 4; return t;
+    }
+    function initThree(geo) {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100); camera.position.set(0, 1.4, 5.2);
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+      document.getElementById("scene").appendChild(renderer.domElement);
+      const sg = new THREE.BufferGeometry(), N = 1600, pos = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) { const v = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize().multiplyScalar(40 + Math.random() * 30); pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; }
+      sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0x8aa0a4, size: 0.08, transparent: true, opacity: .5 })));
+      globe = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 64), new THREE.MeshBasicMaterial({ map: globeTexture(geo) })); scene.add(globe);
+      const atm = new THREE.Mesh(new THREE.SphereGeometry(R * 1.06, 48, 48), new THREE.ShaderMaterial({
+        transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending,
+        vertexShader: "varying vec3 vN; void main(){ vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} ",
+        fragmentShader: "varying vec3 vN; void main(){ float i=pow(0.62-dot(vN,vec3(0,0,1.0)),2.0); gl_FragColor=vec4(0.45,0.60,0.75,1.0)*i*0.9; }"
+      })); scene.add(atm);
+      spikeGroup = new THREE.Group(); scene.add(spikeGroup);
+      Object.keys(window.INDICE_GEO_CONFIG.cities).forEach(city => {
+        const c = window.INDICE_GEO_CONFIG.cities[city];
+        const m = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 12), new THREE.MeshBasicMaterial({ color: 0xE78D38, transparent: true, opacity: 0 }));
+        m.position.copy(llToVec(c.lat, c.lon, R * 1.01)); m.userData.city = city; cityMeshes.push(m); scene.add(m);
+      });
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; controls.dampingFactor = .08; controls.minDistance = 3; controls.maxDistance = 9;
+      controls.autoRotate = true; controls.autoRotateSpeed = 0.35; controls.enablePan = false;
+      addEventListener("resize", onResize);
+      renderer.domElement.addEventListener("pointerdown", e => { S._down = { x: e.clientX, y: e.clientY }; });
+      renderer.domElement.addEventListener("pointerup", onPointerUp);
+      rebuildActivity(); animate();
+    }
+    function onResize() { if (!renderer) return; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); }
+    function onPointerUp(e) {
+      if (S.city || !S._down) { S._down = null; return; }
+      const moved = Math.hypot(e.clientX - S._down.x, e.clientY - S._down.y); S._down = null; if (moved > 6) return;
+      const r = renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      const ray = new THREE.Raycaster(); ray.setFromCamera(mouse, camera);
+      const hit = ray.intersectObjects(cityMeshes); if (hit.length) openCity(hit[0].object.userData.city);
+    }
+    function activeCities() { const set = {}; filtered().forEach(f => set[f.city] = (set[f.city] || 0) + 1); return set; }
+    function rebuildActivity() {
+      if (!spikeGroup) return; while (spikeGroup.children.length) spikeGroup.remove(spikeGroup.children[0]);
+      const act = activeCities(), cfg = window.INDICE_GEO_CONFIG;
+      Object.keys(act).forEach(city => {
+        const c = cfg.cities[city]; if (!c) return;
+        const g = new THREE.BufferGeometry().setFromPoints([llToVec(c.lat, c.lon, R), llToVec(c.lat, c.lon, R + 0.12 + Math.min(act[city], 6) * 0.05)]);
+        /* spikes removed: only the SVG dot marks a city */
+      });
+    }
+    function filtered() {
+      const cat = document.getElementById("catsel").value, city = document.getElementById("citysel").value, tv = document.getElementById("timesel").value;
+      const tmax = tv ? new Date(tv).getTime() : null;
+      return (window.INDICE_GEO_CONFIG.feeds || []).filter(f => {
+        if (cat !== "all" && f.category !== cat) return false;
+        if (city !== "all" && f.city !== city) return false;
+        if (tmax && new Date(String(f.ts || "").replace(" ", "T")).getTime() > tmax) return false; return true;
+      });
+    }
+
+    /* ---------------- Globe overlay (dotted line to card edge, dot<0.25) ---------------- */
+    const cardEls = {};
+    function overlay() {
+      if (!renderer || S.city) return;
+      const svg = document.getElementById("feedlines"); svg.setAttribute("viewBox", "0 0 " + innerWidth + " " + innerHeight);
+      const feeds = filtered().slice(-8); const want = {}; feeds.forEach(f => want[f.id] = f);
+      Object.keys(cardEls).forEach(id => { if (!want[id]) { cardEls[id].remove(); delete cardEls[id]; } });
+      const camDir = camera.position.clone().normalize();
+      const panelW = document.getElementById("leftpanel").classList.contains("collapsed") ? 0 : 300;
+      let lines = "";
+      feeds.forEach(f => {
+        const surf = llToVec(f.lat, f.lon, R * 1.02);
+        const dot = surf.clone().normalize().dot(camDir);
+        const ndc = surf.clone().project(camera);
+        const sx = (ndc.x * .5 + .5) * innerWidth, sy = (-ndc.y * .5 + .5) * innerHeight;
+        let el = cardEls[f.id]; if (!el) { el = buildFeedCard(f); cardEls[f.id] = el; document.getElementById("feeds").appendChild(el); }
+        const cx = Math.min(innerWidth - 90, Math.max(panelW + 90, sx + 78)), cy = Math.min(innerHeight - 70, Math.max(80, sy - 60));
+        const nearPanel = cx - 78 < panelW + 10;
+        const show = dot > 0.25 && !nearPanel && ndc.z < 1;
+        el.style.opacity = show ? "1" : "0"; el.style.pointerEvents = show ? "auto" : "none";
+        if (el._video && !el._fbOn) { if (show && el._video.paused) el._video.play().catch(() => { }); else if (!show && !el._video.paused) el._video.pause(); }
+        if (show) {
+          el.style.left = cx + "px"; el.style.top = cy + "px";
+          const edge = cx >= sx ? cx - 78 : cx + 78;
+          lines += `<line x1="${sx}" y1="${sy}" x2="${edge}" y2="${cy}" stroke="rgba(231,141,56,0.8)" stroke-width="1.3" stroke-dasharray="5 4"/><circle cx="${sx}" cy="${sy}" r="2.4" fill="#E78D38"/>`;
+        }
+      });
+      svg.innerHTML = lines;
+    }
+    function animate() { requestAnimationFrame(animate); if (controls) { controls.autoRotate = S.autoRotate && !S.city; controls.update(); } if (renderer && !S.city) renderer.render(scene, camera); overlay(); }
+
+    /* ---------------- Inspector ---------------- */
+    function openInspector(f) {
+      S.inspItem = f; const m = document.getElementById("inspector");
+      const media = f.embed
+        ? `<iframe src="${esc(f.embed).replace("controls=0", "controls=1").replace("&mute=1", "")}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen frameborder="0" style="width:100%;aspect-ratio:16/9;background:#000;border:0;display:block"></iframe>`
+        : `<video id="insp-video" src="${esc(f.video)}" controls autoplay playsinline style="width:100%;background:#000;display:block;max-height:58vh"></video>`;
+      const ctrls = f.embed ? "" : `<button onclick="NIAN.frame(-1)">⏴ image</button><button onclick="NIAN.frame(1)">image ⏵</button>`;
+      m.innerHTML = `<div class="insp-card">
     <div class="insp-top"><span>${esc(f.source)} · ${esc(f.city)} · ${esc(f.category)}</span><span style="cursor:pointer;color:var(--faint)" onclick="NIAN.closeInspector()">✕</span></div>
-    <video id="insp-video" src="${esc(f.video)}" controls autoplay playsinline style="width:100%;background:#000;display:block;max-height:58vh"></video>
-    <div class="insp-ctrls"><button onclick="NIAN.frame(-1)">⏴ image</button><button onclick="NIAN.frame(1)">image ⏵</button><button class="insp-add" onclick="NIAN.addEntity()">+ AJOUTER AU DOSSIER INDICE</button></div>
+    ${media}
+    <div class="insp-ctrls">${ctrls}<button class="insp-add" onclick="NIAN.addEntity()">+ AJOUTER AU DOSSIER INDICE</button></div>
     <div class="insp-meta"><div>${esc(f.text)}</div><div class="auth">Auteur : ${esc(f.author || "—")}</div><div>${fmtTs(f.ts)}</div>${f.url ? `<a href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener">Ouvrir la source ↗</a>` : ""}</div>
   </div>`;
-  m.classList.add("show"); const v = document.getElementById("insp-video"); if (v) { v.muted = false; v.play().catch(() => {}); }
-}
-window.NIAN = {
-  closeInspector: () => { const m = document.getElementById("inspector"); const v = document.getElementById("insp-video"); if (v) v.pause(); m.classList.remove("show"); m.innerHTML = ""; },
-  frame: (d) => { const v = document.getElementById("insp-video"); if (v) { v.pause(); v.currentTime = Math.max(0, v.currentTime + d * (1 / 30)); } },
-  addEntity: () => { if (S.inspItem) window.dispatchEvent(new CustomEvent("indice:add-entity", { detail: { kind: "feed", item: S.inspItem } })); const b = document.querySelector(".insp-add"); if (b) { b.textContent = "✓ ÉMIS VERS INDICE"; setTimeout(() => { b.textContent = "+ AJOUTER AU DOSSIER INDICE"; }, 1600); } }
-};
+      m.classList.add("show"); const v = document.getElementById("insp-video"); if (v) { v.muted = false; v.play().catch(() => { }); }
+    }
+    window.NIAN = {
+      closeInspector: () => { const m = document.getElementById("inspector"); const v = document.getElementById("insp-video"); if (v) v.pause(); m.classList.remove("show"); m.innerHTML = ""; },
+      frame: (d) => { const v = document.getElementById("insp-video"); if (v) { v.pause(); v.currentTime = Math.max(0, v.currentTime + d * (1 / 30)); } },
+      addEntity: () => { if (S.inspItem) window.dispatchEvent(new CustomEvent("indice:add-entity", { detail: { kind: "feed", item: S.inspItem } })); const b = document.querySelector(".insp-add"); if (b) { b.textContent = "✓ ÉMIS VERS INDICE"; setTimeout(() => { b.textContent = "+ AJOUTER AU DOSSIER INDICE"; }, 1600); } }
+    };
 
-/* ---------------- Left panel ---------------- */
-function selectCity(city) {
-  const feeds = (window.INDICE_GEO_CONFIG.feeds || []).filter(f => f.city === city);
-  const bySrc = {}; feeds.forEach(f => bySrc[f.source] = (bySrc[f.source] || 0) + 1);
-  const rank = Object.keys(bySrc).sort((a, b) => bySrc[b] - bySrc[a]).map(s => `<div class="srcrow"><span>${esc(s)}</span><span style="color:var(--accent)">${bySrc[s]}</span></div>`).join("") || "<div style='color:var(--faint);font-size:11px'>—</div>";
-  document.getElementById("lpbody").innerHTML = `<div class="lp-title">${esc(city.toUpperCase())}</div>
+    /* ---------------- Left panel ---------------- */
+    function selectCity(city) {
+      const feeds = (window.INDICE_GEO_CONFIG.feeds || []).filter(f => f.city === city);
+      const bySrc = {}; feeds.forEach(f => bySrc[f.source] = (bySrc[f.source] || 0) + 1);
+      const rank = Object.keys(bySrc).sort((a, b) => bySrc[b] - bySrc[a]).map(s => `<div class="srcrow"><span>${esc(s)}</span><span style="color:var(--accent)">${bySrc[s]}</span></div>`).join("") || "<div style='color:var(--faint);font-size:11px'>—</div>";
+      document.getElementById("lpbody").innerHTML = `<div class="lp-title">${esc(city.toUpperCase())}</div>
     <div class="lp-h">RÉSUMÉ</div><div style="font-size:11px;color:var(--faint)">${feeds.length} flux détectés.</div>
     <div class="lp-h">CLASSEMENT DES SOURCES</div>${rank}
     <div class="lp-h">DERNIERS FLUX</div>${feeds.slice(-4).reverse().map(f => `<div style="font-size:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span style="color:var(--accent)">${esc(f.source)}</span> · ${esc(f.category)}<br><span style="color:var(--faint)">${esc(fmtTs(f.ts))}</span></div>`).join("")}`;
-  document.getElementById("leftpanel").classList.remove("collapsed"); document.getElementById("panelToggle").classList.add("shift");
-}
+      document.getElementById("leftpanel").classList.remove("collapsed"); document.getElementById("panelToggle").classList.add("shift");
+    }
 
-/* ---------------- Leaflet city view ---------------- */
-let cityMap = null, cityLayer = null, cityCards = [];
-function openCity(city) {
-  const c = window.INDICE_GEO_CONFIG.cities[city]; if (!c || typeof L === "undefined") return;
-  S.city = city; selectCity(city);
-  document.getElementById("cityname").textContent = city.toUpperCase();
-  document.getElementById("city-view").classList.add("show");
-  if (!cityMap) {
-    cityMap = L.map("citymap", { zoomControl: false, attributionControl: true }).setView([c.lat, c.lon], 13);
-    L.control.zoom({ position: "bottomright" }).addTo(cityMap);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 19, attribution: "© OpenStreetMap, © CARTO" }).addTo(cityMap);
-    cityMap.on("move zoom", updateCityCallouts);
-  } else { cityMap.setView([c.lat, c.lon], 13); }
-  buildCityCallouts(city);
-  setTimeout(() => { cityMap.invalidateSize(); updateCityCallouts(); }, 60);
-}
-function buildCityCallouts(city) {
-  const callouts = document.getElementById("cityCallouts"); callouts.innerHTML = "";
-  if (cityLayer) cityMap.removeLayer(cityLayer); cityLayer = L.layerGroup().addTo(cityMap);
-  const feeds = (window.INDICE_GEO_CONFIG.feeds || []).filter(f => f.city === city);
-  cityCards = feeds.map((f, i) => { L.circleMarker([f.lat, f.lon], { radius: 4, color: "#E78D38", weight: 2, fillColor: "#E78D38", fillOpacity: .6 }).addTo(cityLayer); const el = buildFeedCard(f); callouts.appendChild(el); return { f, el, i }; });
-}
-function updateCityCallouts() {
-  if (!cityMap || !S.city) return;
-  const svg = document.getElementById("cityLines"), sz = cityMap.getSize(); svg.setAttribute("viewBox", "0 0 " + sz.x + " " + sz.y);
-  let lines = ""; const n = Math.max(1, cityCards.length);
-  cityCards.forEach(({ f, el, i }) => {
-    const p = cityMap.latLngToContainerPoint([f.lat, f.lon]);
-    const ang = (i / n) * Math.PI * 2, rr = 118;
-    let cx = Math.min(sz.x - 90, Math.max(90, p.x + Math.cos(ang) * rr)), cy = Math.min(sz.y - 70, Math.max(80, p.y + Math.sin(ang) * rr));
-    el.style.left = cx + "px"; el.style.top = cy + "px";
-    const edge = cx >= p.x ? cx - 78 : cx + 78;
-    lines += `<line x1="${p.x}" y1="${p.y}" x2="${edge}" y2="${cy}" stroke="rgba(255,255,255,0.55)" stroke-width="1" stroke-dasharray="3 3"/><circle cx="${p.x}" cy="${p.y}" r="3" fill="#E78D38"/>`;
-  });
-  svg.innerHTML = lines;
-}
-function backGlobe() { S.city = null; document.getElementById("city-view").classList.remove("show"); }
+    /* ---------------- Leaflet city view ---------------- */
+    let cityMap = null, cityLayer = null, cityCards = [];
+    function openCity(city) {
+      const c = window.INDICE_GEO_CONFIG.cities[city]; if (!c || typeof L === "undefined") return;
+      S.city = city; selectCity(city);
+      document.getElementById("cityname").textContent = city.toUpperCase();
+      document.getElementById("city-view").classList.add("show");
+      if (!cityMap) {
+        cityMap = L.map("citymap", { zoomControl: false, attributionControl: true }).setView([c.lat, c.lon], 13);
+        L.control.zoom({ position: "bottomright" }).addTo(cityMap);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { subdomains: "abc", maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(cityMap);
+        cityMap.on("move zoom", updateCityCallouts);
+      } else { cityMap.setView([c.lat, c.lon], 13); }
+      buildCityCallouts(city);
+      setTimeout(() => { cityMap.invalidateSize(); updateCityCallouts(); }, 60);
+    }
+    function buildCityCallouts(city) {
+      const callouts = document.getElementById("cityCallouts"); callouts.innerHTML = "";
+      if (cityLayer) cityMap.removeLayer(cityLayer); cityLayer = L.layerGroup().addTo(cityMap);
+      const feeds = (window.INDICE_GEO_CONFIG.feeds || []).filter(f => f.city === city);
+      cityCards = feeds.map((f, i) => { L.circleMarker([f.lat, f.lon], { radius: 4, color: "#E78D38", weight: 2, fillColor: "#E78D38", fillOpacity: .6 }).addTo(cityLayer); const el = buildFeedCard(f); callouts.appendChild(el); return { f, el, i }; });
+    }
+    function updateCityCallouts() {
+      if (!cityMap || !S.city) return;
+      const svg = document.getElementById("cityLines"), sz = cityMap.getSize(); svg.setAttribute("viewBox", "0 0 " + sz.x + " " + sz.y);
+      let lines = ""; const n = Math.max(1, cityCards.length);
+      cityCards.forEach(({ f, el, i }) => {
+        const p = cityMap.latLngToContainerPoint([f.lat, f.lon]);
+        const ang = (i / n) * Math.PI * 2, rr = 118;
+        let cx = Math.min(sz.x - 90, Math.max(90, p.x + Math.cos(ang) * rr)), cy = Math.min(sz.y - 70, Math.max(80, p.y + Math.sin(ang) * rr));
+        el.style.left = cx + "px"; el.style.top = cy + "px";
+        const edge = cx >= p.x ? cx - 78 : cx + 78;
+        lines += `<line x1="${p.x}" y1="${p.y}" x2="${edge}" y2="${cy}" stroke="rgba(231,141,56,0.8)" stroke-width="1.3" stroke-dasharray="5 4"/><circle cx="${p.x}" cy="${p.y}" r="3" fill="#E78D38"/>`;
+      });
+      svg.innerHTML = lines;
+    }
+    function backGlobe() { S.city = null; document.getElementById("city-view").classList.remove("show"); }
 
-/* ---------------- Counters ---------------- */
-function counters() {
-  const by = {}; filtered().forEach(f => by[f.category] = (by[f.category] || 0) + 1); const cfg = window.INDICE_GEO_CONFIG;
-  document.getElementById("bottombar").innerHTML = cfg.categories.map(c => `<span class="cnt" style="color:${cfg.catColor[c]}">${esc(c)} <b>${by[c] || 0}</b></span>`).join("") + `<span class="cnt">TOTAL <b style="color:var(--accent)">${filtered().length}</b></span>`;
-}
+    /* ---------------- Counters ---------------- */
+    function counters() {
+      const by = {}; filtered().forEach(f => by[f.category] = (by[f.category] || 0) + 1); const cfg = window.INDICE_GEO_CONFIG;
+      document.getElementById("bottombar").innerHTML = cfg.categories.map(c => `<span class="cnt" style="color:${cfg.catColor[c]}">${esc(c)} <b>${by[c] || 0}</b></span>`).join("") + `<span class="cnt">TOTAL <b style="color:var(--accent)">${filtered().length}</b></span>`;
+    }
 
-/* ---------------- Public API ---------------- */
-function updateFeeds(items) {
-  if (S.frozen || !items) return; const arr = window.INDICE_GEO_CONFIG.feeds, seen = {}; arr.forEach(f => seen[f.id] = 1);
-  (Array.isArray(items) ? items : [items]).forEach(it => { if (it && it.id && !seen[it.id]) arr.push(it); });
-  if (arr.length > 60) window.INDICE_GEO_CONFIG.feeds = arr.slice(-60);
-  rebuildActivity(); counters();
-}
-window.updateFeeds = updateFeeds;
+    /* ---------------- Public API ---------------- */
+    function updateFeeds(items) {
+      if (S.frozen || !items) return; const arr = window.INDICE_GEO_CONFIG.feeds, seen = {}; arr.forEach(f => seen[f.id] = 1);
+      (Array.isArray(items) ? items : [items]).forEach(it => { if (it && it.id && !seen[it.id]) arr.push(it); });
+      if (arr.length > 60) window.INDICE_GEO_CONFIG.feeds = arr.slice(-60);
+      rebuildActivity(); counters();
+    }
+    window.updateFeeds = updateFeeds;
 
-/* ---------------- Boot ---------------- */
-function fillCitySelect() { const sel = document.getElementById("citysel"); Object.keys(window.INDICE_GEO_CONFIG.cities).forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; sel.appendChild(o); }); }
-function wireUI() {
-  document.getElementById("catsel").addEventListener("change", () => { rebuildActivity(); counters(); });
-  document.getElementById("citysel").addEventListener("change", e => { rebuildActivity(); counters(); if (e.target.value !== "all") openCity(e.target.value); });
-  document.getElementById("timesel").addEventListener("change", () => { rebuildActivity(); counters(); });
-  document.getElementById("freezebtn").addEventListener("click", e => { S.frozen = !S.frozen; e.target.classList.toggle("on", S.frozen); e.target.textContent = S.frozen ? "FIGÉ" : "FREEZE"; });
-  document.getElementById("orbitbtn").addEventListener("click", e => { S.autoRotate = !S.autoRotate; e.target.textContent = "ORBITE : " + (S.autoRotate ? "LENTE" : "PAUSE"); });
-  document.getElementById("panelToggle").addEventListener("click", () => { const p = document.getElementById("leftpanel"); p.classList.toggle("collapsed"); document.getElementById("panelToggle").classList.toggle("shift", !p.classList.contains("collapsed")); });
-  document.getElementById("backglobe").addEventListener("click", backGlobe);
-  document.getElementById("inspector").addEventListener("click", e => { if (e.target.id === "inspector") window.NIAN.closeInspector(); });
-  addEventListener("keydown", e => { if (e.key === "Escape") { if (document.getElementById("inspector").classList.contains("show")) window.NIAN.closeInspector(); else if (S.city) backGlobe(); } });
-  document.getElementById("panelToggle").classList.add("shift");
-}
-function startStream() { try { const es = new EventSource("/api/geospatial/stream"); es.onmessage = ev => { try { updateFeeds(JSON.parse(ev.data)); } catch (e) {} }; es.onerror = () => {}; } catch (e) {} }
-(function boot() {
-  if (typeof THREE === "undefined") { document.body.insertAdjacentHTML("beforeend", "<div style='position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#e5443b'>Three.js non chargé (connexion CDN requise).</div>"); return; }
-  fillCitySelect(); wireUI(); counters();
-  fetch("/world.geojson").then(r => r.json()).then(geo => initThree(geo)).catch(() => initThree({ features: [] }));
-  fetch("/api/geospatial/snapshot").then(r => r.json()).then(d => updateFeeds(d.items || [])).catch(() => {});
-  startStream();
-})();
-</script>
+    /* ---------------- Boot ---------------- */
+    function fillCitySelect() { const sel = document.getElementById("citysel"); Object.keys(window.INDICE_GEO_CONFIG.cities).forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; sel.appendChild(o); }); }
+    async function doSearch() {
+      const q = (document.getElementById("search") || {}).value || "", place = q;
+      if (!q && !place) return;
+      const btn = document.getElementById("searchbtn"); if (btn) btn.textContent = "…";
+      try {
+        const r = await fetch("/api/geospatial/search?q=" + encodeURIComponent(q) + "&place=" + encodeURIComponent(place)).then(x => x.json());
+        if (r && r.error) alert("Recherche indisponible : " + r.error);
+        if (r && r.place && typeof r.lat === "number") {
+          window.INDICE_GEO_CONFIG.cities[r.place] = { lat: r.lat, lon: r.lon };
+          const sel = document.getElementById("citysel");
+          if (sel && !Array.prototype.some.call(sel.options, o => o.value === r.place)) { const o = document.createElement("option"); o.value = r.place; o.textContent = r.place; sel.appendChild(o); }
+        }
+        updateFeeds((r && r.items) || []);
+      } catch (e) { alert("Recherche : erreur réseau"); }
+      if (btn) btn.textContent = "RECHERCHER";
+    }
+    function $on(id, ev, fn) { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); }
+    function wireUI() {
+      $on("search", "keydown", e => { if (e.key === "Enter") doSearch(); });
+      $on("filtersbtn", "click", () => { const fp = document.getElementById("filters"); if (fp) fp.classList.toggle("hidden"); });
+      $on("catsel", "change", () => { rebuildActivity(); counters(); });
+      $on("citysel", "change", e => { rebuildActivity(); counters(); if (e.target.value !== "all") openCity(e.target.value); });
+      $on("timesel", "change", () => { rebuildActivity(); counters(); });
+      $on("freezebtn", "click", e => { S.frozen = !S.frozen; e.target.classList.toggle("on", S.frozen); e.target.textContent = S.frozen ? "FIGÉ" : "FREEZE"; });
+      $on("orbitbtn", "click", e => { S.autoRotate = !S.autoRotate; e.target.textContent = "ORBITE : " + (S.autoRotate ? "LENTE" : "PAUSE"); });
+      $on("panelToggle", "click", () => { const p = document.getElementById("leftpanel"); if (!p) return; p.classList.toggle("collapsed"); document.getElementById("panelToggle").classList.toggle("shift", !p.classList.contains("collapsed")); });
+      $on("backglobe", "click", backGlobe);
+      $on("inspector", "click", e => { if (e.target.id === "inspector") window.NIAN.closeInspector(); });
+      addEventListener("keydown", e => { if (e.key === "Escape") { if (document.getElementById("inspector").classList.contains("show")) window.NIAN.closeInspector(); else if (S.city) backGlobe(); } });
+      const pt = document.getElementById("panelToggle"); if (pt) pt.classList.add("shift");
+    }
+    function startStream() { try { const es = new EventSource("/api/geospatial/stream"); es.onmessage = ev => { try { updateFeeds(JSON.parse(ev.data)); } catch (e) { } }; es.onerror = () => { }; } catch (e) { } }
+    (function boot() {
+      if (typeof THREE === "undefined") { document.body.insertAdjacentHTML("beforeend", "<div style='position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#e5443b'>Three.js non chargé (connexion CDN requise).</div>"); return; }
+      fillCitySelect(); wireUI(); counters();
+      fetch("/world.geojson").then(r => r.json()).then(geo => initThree(geo)).catch(() => initThree({ features: [] }));
+      fetch("/api/geospatial/snapshot").then(r => r.json()).then(d => updateFeeds(d.items || [])).catch(() => { });
+      startStream();
+    })();
+  </script>
 </body>
+
 </html>
