@@ -1,13 +1,12 @@
-"""Nian - standalone geospatial live map module (FastAPI).
+"""Nian - standalone live map module (FastAPI).
 
-Serves the single-page map and a demo geospatial feed. The front talks to:
   GET /                         -> the map UI
   GET /world.geojson            -> land outlines for the globe
   GET /api/geospatial/snapshot  -> initial batch of feed items
   GET /api/geospatial/stream    -> SSE stream of new feed items (text/event-stream)
 
-Replace _demo_item() with a real collector (public social/event feeds) later.
-The UI stays identical: it only consumes the JSON shape below.
+Feed item shape: { id, source, city, lat, lon, category, text, author, url, video, ts }.
+Replace _demo_item() with a real public-feed collector later; the UI is unchanged.
 """
 from __future__ import annotations
 
@@ -27,20 +26,26 @@ app = FastAPI(title="Nian")
 CITIES = {
     "Singapour": (1.3521, 103.8198),
     "Abidjan": (5.3599, -4.0083),
-    "Montreal": (45.5019, -73.5674),
+    "Montréal": (45.5019, -73.5674),
     "Paris": (48.8566, 2.3522),
     "Tokyo": (35.6762, 139.6503),
 }
 CATS = ["Concerts", "Manifestations", "Incidents", "Tech"]
 SOURCES = ["X", "Instagram", "TikTok", "YouTube"]
+AUTHORS = ["@live_report", "@onsite_cam", "@city_pulse", "@field_stream", "@eyewitness"]
+VBASE = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/"
+VIDEOS = ["BigBuckBunny", "ElephantsDream", "ForBiggerBlazes", "ForBiggerEscapes",
+          "ForBiggerFun", "ForBiggerJoyrides", "ForBiggerMeltdowns", "Sintel",
+          "SubaruOutbackOnStreetAndDirt", "TearsOfSteel", "VolkswagenGTIReview",
+          "WhatCarCanYouGetForAGrand"]
 SNIPPETS = [
-    "Foule compacte signalee sur la place centrale",
-    "Direct video: scene principale",
-    "Rassemblement en cours, slogans",
-    "Coupure reseau signalee par plusieurs comptes",
-    "Annonce officielle relayee",
-    "File d'attente massive a l'entree",
-    "Demo tech / meetup developpeurs",
+    "Foule compacte sur la place centrale, direct",
+    "Scène principale, ambiance en cours",
+    "Rassemblement et slogans en direct",
+    "Ralentissement signalé sur l'axe principal",
+    "File d'attente massive à l'entrée",
+    "Meetup développeurs, démo live",
+    "Annonce officielle relayée sur place",
 ]
 
 
@@ -55,6 +60,9 @@ def _demo_item():
         "lon": lon + random.uniform(-0.06, 0.06),
         "category": random.choice(CATS),
         "text": random.choice(SNIPPETS),
+        "author": random.choice(AUTHORS),
+        "url": "",
+        "video": VBASE + random.choice(VIDEOS) + ".mp4",
         "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
 
@@ -62,17 +70,13 @@ def _demo_item():
 @app.get("/")
 async def index():
     p = os.path.join(HERE, "index.html")
-    if os.path.isfile(p):
-        return FileResponse(p)
-    return JSONResponse({"detail": "index.html not found"}, status_code=404)
+    return FileResponse(p) if os.path.isfile(p) else JSONResponse({"detail": "index.html not found"}, status_code=404)
 
 
 @app.get("/world.geojson")
 async def world():
     p = os.path.join(HERE, "world.geojson")
-    if os.path.isfile(p):
-        return FileResponse(p, media_type="application/json")
-    return JSONResponse({"detail": "world.geojson not found"}, status_code=404)
+    return FileResponse(p, media_type="application/json") if os.path.isfile(p) else JSONResponse({"detail": "not found"}, status_code=404)
 
 
 @app.get("/api/geospatial/snapshot")
