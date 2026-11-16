@@ -33,11 +33,13 @@ CITIES = {
 CATS = ["Concerts", "Manifestations", "Incidents", "Tech"]
 SOURCES = ["X", "Instagram", "TikTok", "YouTube"]
 AUTHORS = ["@live_report", "@onsite_cam", "@city_pulse", "@field_stream", "@eyewitness"]
-VBASE = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/"
-VIDEOS = ["BigBuckBunny", "ElephantsDream", "ForBiggerBlazes", "ForBiggerEscapes",
-          "ForBiggerFun", "ForBiggerJoyrides", "ForBiggerMeltdowns", "Sintel",
-          "SubaruOutbackOnStreetAndDirt", "TearsOfSteel", "VolkswagenGTIReview",
-          "WhatCarCanYouGetForAGrand"]
+VIDEO_URLS = [
+    "https://www.w3schools.com/html/mov_bbb.mp4",
+    "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+    "https://media.w3.org/2010/05/bunny/trailer.mp4",
+    "https://media.w3.org/2010/05/video/movie_300.mp4",
+    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+]
 SNIPPETS = [
     "Foule compacte sur la place centrale, direct",
     "Scène principale, ambiance en cours",
@@ -62,7 +64,7 @@ def _demo_item():
         "text": random.choice(SNIPPETS),
         "author": random.choice(AUTHORS),
         "url": "",
-        "video": VBASE + random.choice(VIDEOS) + ".mp4",
+        "video": random.choice(VIDEO_URLS),
         "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
 
