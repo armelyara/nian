@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Nian</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+  :root{
+    --bg:#040708; --ocean:#0c1113; --land:#3e4447; --coast:#78848a;
+    --panel:rgba(10,16,19,.72); --border:rgba(255,255,255,.14); --border2:rgba(255,255,255,.26);
+    --txt:#c6d2d4; --faint:#6f7c80; --accent:#37e2a0; --cyan:#8fd3da; --red:#c0392b;
+    --font:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:var(--font);overflow:hidden}
+  #scene{position:fixed;inset:0;z-index:1}
+  #feedlines{position:fixed;inset:0;z-index:5;pointer-events:none}
+  #feeds{position:fixed;inset:0;z-index:6;pointer-events:none}
+  .feedcard{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);transition:opacity .35s ease;
+    background:var(--panel);border:1px solid var(--border2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    width:180px;padding:7px 9px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+  .feedcard .fh{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.08em;color:var(--accent)}
+  .feedcard .fc{font-size:9px;color:var(--faint);margin-top:1px}
+  .feedcard .ft{font-size:10px;color:var(--txt);line-height:1.4;margin-top:4px;max-height:28px;overflow:hidden}
+  .feedcard .fd{font-size:8px;color:var(--faint);margin-top:4px;letter-spacing:.05em}
+  header#topbar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:9px 14px;background:linear-gradient(180deg,rgba(4,7,8,.92),rgba(4,7,8,.35));}
+  #topbar .brand{font-size:15px;letter-spacing:.42em;color:var(--accent);font-weight:700}
+  #topbar select,#topbar input{background:rgba(14,20,23,.8);border:1px solid var(--border);color:var(--txt);
+    font-family:var(--font);font-size:11px;padding:5px 8px;outline:none}
+  .tbtn{background:rgba(14,20,23,.8);border:1px solid var(--border);color:var(--txt);font-family:var(--font);
+    font-size:10px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
+  .tbtn.on{background:var(--accent);color:#04120b;border-color:var(--accent)}
+  aside#leftpanel{position:fixed;top:52px;left:0;bottom:30px;z-index:18;width:300px;max-width:84vw;
+    background:var(--panel);border-right:1px solid var(--border2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    transform:translateX(0);transition:transform .3s ease;overflow-y:auto}
+  aside#leftpanel.collapsed{transform:translateX(-100%)}
+  #panelToggle{position:fixed;top:60px;left:0;z-index:19;background:var(--panel);border:1px solid var(--border2);border-left:0;
+    color:var(--accent);font-family:var(--font);font-size:14px;padding:8px 7px;cursor:pointer;transition:left .3s ease}
+  #panelToggle.shift{left:300px}
+  .lp-pad{padding:14px 15px}
+  .lp-h{font-size:9px;letter-spacing:.2em;color:var(--cyan);margin:14px 0 6px}
+  .lp-title{font-size:16px;letter-spacing:.06em;color:var(--accent)}
+  .srcrow{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .addbtn{margin-top:14px;width:100%;background:transparent;border:1px solid var(--accent);color:var(--accent);
+    font-family:var(--font);font-size:10px;letter-spacing:.12em;padding:9px;cursor:pointer}
+  .addbtn:hover{background:var(--accent);color:#04120b}
+  footer#bottombar{position:fixed;left:0;right:0;bottom:0;z-index:17;display:flex;gap:18px;justify-content:center;
+    padding:6px 14px;background:linear-gradient(0deg,rgba(4,7,8,.92),rgba(4,7,8,.2));font-size:10px;letter-spacing:.1em}
+  footer .cnt{color:var(--faint)} footer .cnt b{color:var(--accent);font-weight:700}
+  #orbitbtn{position:fixed;right:16px;bottom:38px;z-index:20;background:var(--panel);border:1px solid var(--border2);
+    color:var(--txt);font-family:var(--font);font-size:10px;letter-spacing:.1em;padding:7px 12px;cursor:pointer;backdrop-filter:blur(8px)}
+  #cityview{position:fixed;inset:0;z-index:25;background:radial-gradient(circle at 50% 42%,#10171d,#070b0e);display:none}
+  #cityview.show{display:block}
+  #cityhead{position:absolute;top:60px;left:24px;z-index:26}
+  #cityhead .ct{font-size:20px;letter-spacing:.14em;color:var(--accent)}
+  #backglobe{margin-top:10px;background:transparent;border:1px solid var(--border2);color:var(--txt);
+    font-family:var(--font);font-size:10px;letter-spacing:.12em;padding:8px 12px;cursor:pointer}
+  #citysvg{position:absolute;inset:0;width:100%;height:100%}
+  .cmark{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;
+    background:var(--panel);border:1px solid var(--border2);padding:6px 8px;width:170px;backdrop-filter:blur(8px)}
+  .cmark .fh{font-size:9px;color:var(--accent);letter-spacing:.08em}
+  .cmark .ft{font-size:10px;color:var(--txt);line-height:1.4;margin-top:3px}
+  #citymarks{position:absolute;inset:0;z-index:27}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<svg id="feedlines"></svg>
+<div id="feeds"></div>
+
+<header id="topbar">
+  <span class="brand">NIAN</span>
+  <select id="catsel" title="Theme">
+    <option value="all">Tout</option><option>Concerts</option><option>Manifestations</option><option>Incidents</option><option>Tech</option>
+  </select>
+  <select id="citysel" title="Ville"><option value="all">Toutes les villes</option></select>
+  <input id="timesel" type="datetime-local" title="Avant"/>
+  <button class="tbtn" id="freezebtn">FREEZE</button>
+</header>
+
+<button id="panelToggle">❮</button>
+<aside id="leftpanel">
+  <div class="lp-pad" id="lpbody">
+    <div class="lp-title">NIAN</div>
+    <div class="lp-h">ETAT</div>
+    <div style="font-size:11px;color:var(--faint)">Sélectionne une ville ou un flux sur le globe.</div>
+  </div>
+</aside>
+
+<footer id="bottombar"></footer>
+<button id="orbitbtn">ORBITE : LENTE</button>
+
+<div id="cityview">
+  <svg id="citysvg"></svg>
+  <div id="citymarks"></div>
+  <div id="cityhead"><div class="ct" id="cityname">VILLE</div><button id="backglobe">← RETOUR GLOBE</button></div>
+</div>
+
+<script>
+/* ---------------- Config & demo data ---------------- */
+window.INDICE_GEO_CONFIG = {
+  cities: {
+    "Singapour": { lat: 1.3521, lon: 103.8198 },
+    "Abidjan":   { lat: 5.3599, lon: -4.0083 },
+    "Montréal":  { lat: 45.5019, lon: -73.5674 },
+    "Paris":     { lat: 48.8566, lon: 2.3522 },
+    "Tokyo":     { lat: 35.6762, lon: 139.6503 }
+  },
+  categories: ["Concerts", "Manifestations", "Incidents", "Tech"],
+  catColor: { "Concerts": "#37e2a0", "Manifestations": "#d8b24a", "Incidents": "#e5534b", "Tech": "#5aa9e6" },
+  feeds: []
+};
+(function seed() {
+  const C = window.INDICE_GEO_CONFIG.cities, cats = window.INDICE_GEO_CONFIG.categories;
+  const srcs = ["X", "Instagram", "TikTok", "YouTube"];
+  const snips = ["Foule compacte place centrale", "Direct vidéo scène principale", "Rassemblement en cours",
+    "Coupure réseau signalée", "File massive à l'entrée", "Meetup développeurs", "Annonce officielle relayée"];
+  let i = 0; const out = [];
+  Object.keys(C).forEach(city => {
+    for (let k = 0; k < 2; k++) {
+      out.push({ id: "seed" + (i++), source: srcs[(i) % srcs.length], city: city,
+        lat: C[city].lat + (Math.random() - .5) * .08, lon: C[city].lon + (Math.random() - .5) * .08,
+        category: cats[i % cats.length], text: snips[i % snips.length],
+        ts: new Date(Date.now() - Math.random() * 6e6).toISOString().slice(0, 16).replace("T", " ") });
+    }
+  });
+  window.INDICE_GEO_CONFIG.feeds = out;
+})();
+
+/* ---------------- Three globe ---------------- */
+const R = 2, S = { three: null, frozen: false, autoRotate: true, city: null };
+let scene, camera, renderer, controls, globe, cityMeshes = [], spikeGroup, arcGroup;
+
+function llToVec(lat, lon, r) {
+  const phi = (90 - lat) * Math.PI / 180, th = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th));
+}
+function globeTexture(geo) {
+  const W = 2048, H = 1024, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#0c1113"; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "rgba(120,132,138,0.06)"; ctx.lineWidth = 1;
+  for (let lon = -180; lon <= 180; lon += 30) { const x = (lon + 180) / 360 * W; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let lat = -90; lat <= 90; lat += 30) { const y = (90 - lat) / 180 * H; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  const proj = p => [(p[0] + 180) / 360 * W, (90 - p[1]) / 180 * H];
+  ctx.fillStyle = "#3e4447"; ctx.strokeStyle = "#78848a"; ctx.lineWidth = 1.1;
+  (geo.features || []).forEach(f => {
+    const g = f.geometry; if (!g) return;
+    const polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : [];
+    polys.forEach(poly => {
+      ctx.beginPath();
+      poly.forEach(ring => ring.forEach((pt, i) => { const q = proj(pt); if (i === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]); }));
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    });
+  });
+  const t = new THREE.CanvasTexture(cv); t.anisotropy = 4; return t;
+}
+function initThree(geo) {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 1.4, 5.2);
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  document.getElementById("scene").appendChild(renderer.domElement);
+  // stars
+  const sg = new THREE.BufferGeometry(), N = 1600, pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { const v = new THREE.Vector3((Math.random() - .5), (Math.random() - .5), (Math.random() - .5)).normalize().multiplyScalar(40 + Math.random() * 30); pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; }
+  sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0x8aa0a4, size: 0.08, sizeAttenuation: true, transparent: true, opacity: .55 })));
+  // globe
+  globe = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 64), new THREE.MeshBasicMaterial({ map: globeTexture(geo) }));
+  scene.add(globe);
+  // atmosphere halo
+  const atm = new THREE.Mesh(new THREE.SphereGeometry(R * 1.06, 48, 48), new THREE.ShaderMaterial({
+    transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending,
+    vertexShader: "varying vec3 vN; void main(){ vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} ",
+    fragmentShader: "varying vec3 vN; void main(){ float i=pow(0.62-dot(vN,vec3(0,0,1.0)),2.0); gl_FragColor=vec4(0.55,0.72,0.70,1.0)*i*0.9; }"
+  }));
+  scene.add(atm);
+  spikeGroup = new THREE.Group(); arcGroup = new THREE.Group(); scene.add(spikeGroup); scene.add(arcGroup);
+  // city click markers
+  Object.keys(window.INDICE_GEO_CONFIG.cities).forEach(city => {
+    const c = window.INDICE_GEO_CONFIG.cities[city];
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 10), new THREE.MeshBasicMaterial({ color: 0x37e2a0 }));
+    m.position.copy(llToVec(c.lat, c.lon, R * 1.01)); m.userData.city = city; cityMeshes.push(m); scene.add(m);
+  });
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = .08; controls.minDistance = 3; controls.maxDistance = 9;
+  controls.autoRotate = true; controls.autoRotateSpeed = 0.35; controls.enablePan = false;
+  addEventListener("resize", onResize);
+  renderer.domElement.addEventListener("pointerdown", onPointerDown);
+  rebuildActivity();
+  animate();
+}
+function onResize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); }
+
+/* ---------------- Activity (spikes + arcs) ---------------- */
+function activeCities() {
+  const set = {}; filtered().forEach(f => { set[f.city] = (set[f.city] || 0) + 1; }); return set;
+}
+function rebuildActivity() {
+  while (spikeGroup.children.length) spikeGroup.remove(spikeGroup.children[0]);
+  while (arcGroup.children.length) arcGroup.remove(arcGroup.children[0]);
+  const act = activeCities(), cfg = window.INDICE_GEO_CONFIG, keys = Object.keys(act);
+  keys.forEach(city => {
+    const c = cfg.cities[city]; if (!c) return;
+    const base = llToVec(c.lat, c.lon, R), top = llToVec(c.lat, c.lon, R + 0.12 + Math.min(act[city], 6) * 0.05);
+    const g = new THREE.BufferGeometry().setFromPoints([base, top]);
+    spikeGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x37e2a0, transparent: true, opacity: .9 })));
+  });
+  for (let i = 0; i < keys.length; i++) {
+    const a = cfg.cities[keys[i]], b = cfg.cities[keys[(i + 1) % keys.length]]; if (!a || !b || keys.length < 2) break;
+    const va = llToVec(a.lat, a.lon, R), vb = llToVec(b.lat, b.lon, R);
+    const mid = va.clone().add(vb).multiplyScalar(0.5).normalize().multiplyScalar(R + va.distanceTo(vb) * 0.5);
+    const curve = new THREE.QuadraticBezierCurve3(va, mid, vb);
+    const g = new THREE.BufferGeometry().setFromPoints(curve.getPoints(40));
+    arcGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x37e2a0, transparent: true, opacity: .32 })));
+  }
+}
+
+/* ---------------- Filters ---------------- */
+function filtered() {
+  const cat = document.getElementById("catsel").value, city = document.getElementById("citysel").value;
+  const tv = document.getElementById("timesel").value;
+  const tmax = tv ? new Date(tv).getTime() : null;
+  return (window.INDICE_GEO_CONFIG.feeds || []).filter(f => {
+    if (cat !== "all" && f.category !== cat) return false;
+    if (city !== "all" && f.city !== city) return false;
+    if (tmax && new Date((f.ts || "").replace(" ", "T")).getTime() > tmax) return false;
+    return true;
+  });
+}
+
+/* ---------------- Feed cards overlay + anti-collision ---------------- */
+const cardEls = {};
+function overlay() {
+  if (!renderer || S.city) return;
+  const svg = document.getElementById("feedlines"); svg.setAttribute("viewBox", "0 0 " + innerWidth + " " + innerHeight);
+  const feeds = filtered().slice(-14);
+  const want = {}; feeds.forEach(f => want[f.id] = f);
+  Object.keys(cardEls).forEach(id => { if (!want[id]) { cardEls[id].remove(); delete cardEls[id]; } });
+  const camDir = camera.position.clone().normalize();
+  const panelW = document.getElementById("leftpanel").classList.contains("collapsed") ? 0 : 300;
+  let lines = "";
+  feeds.forEach(f => {
+    const surf = llToVec(f.lat, f.lon, R * 1.02);
+    const visible = surf.clone().normalize().dot(camDir) > 0.18;
+    const ndc = surf.clone().project(camera);
+    const sx = (ndc.x * .5 + .5) * innerWidth, sy = (-ndc.y * .5 + .5) * innerHeight;
+    let el = cardEls[f.id];
+    if (!el) {
+      el = document.createElement("div"); el.className = "feedcard"; cardEls[f.id] = el;
+      el.innerHTML = `<div class="fh"><span>${esc(f.source)}</span><span>${esc(f.city)}</span></div>
+        <div class="fc">${esc(f.category)}</div><div class="ft">${esc(f.text)}</div><div class="fd">${esc(f.ts)}</div>`;
+      el.addEventListener("click", () => { openCity(f.city); });
+      document.getElementById("feeds").appendChild(el);
+    }
+    const nearPanel = sx < panelW + 36;
+    const show = visible && !nearPanel && ndc.z < 1;
+    el.style.opacity = show ? "1" : "0";
+    if (show) {
+      const cx = Math.min(innerWidth - 100, Math.max(panelW + 100, sx + 70)), cy = Math.min(innerHeight - 80, Math.max(70, sy - 50));
+      el.style.left = cx + "px"; el.style.top = cy + "px";
+      lines += `<line x1="${cx}" y1="${cy}" x2="${sx}" y2="${sy}" stroke="rgba(120,132,138,0.5)" stroke-width="1" stroke-dasharray="3 3"/><circle cx="${sx}" cy="${sy}" r="2.5" fill="#37e2a0"/>`;
+    }
+  });
+  svg.innerHTML = lines;
+}
+
+/* ---------------- Interaction ---------------- */
+function onPointerDown(e) {
+  if (S.city) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  const mouse = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(cityMeshes);
+  if (hit.length) { const city = hit[0].object.userData.city; selectCity(city); }
+}
+function animate() {
+  requestAnimationFrame(animate);
+  if (controls) { controls.autoRotate = S.autoRotate && !S.city; controls.update(); }
+  if (renderer && !S.city) renderer.render(scene, camera);
+  overlay();
+}
+
+/* ---------------- Left panel ---------------- */
+function selectCity(city) {
+  const feeds = (window.INDICE_GEO_CONFIG.feeds || []).filter(f => f.city === city);
+  const bySrc = {}; feeds.forEach(f => bySrc[f.source] = (bySrc[f.source] || 0) + 1);
+  const rank = Object.keys(bySrc).sort((a, b) => bySrc[b] - bySrc[a])
+    .map(s => `<div class="srcrow"><span>${esc(s)}</span><span style="color:var(--accent)">${bySrc[s]}</span></div>`).join("") || "<div style='color:var(--faint);font-size:11px'>—</div>";
+  const lp = document.getElementById("lpbody");
+  lp.innerHTML = `<div class="lp-title">${esc(city.toUpperCase())}</div>
+    <div class="lp-h">RÉSUMÉ</div><div style="font-size:11px;color:var(--faint)">${feeds.length} flux détectés sur cette ville.</div>
+    <div class="lp-h">CLASSEMENT DES SOURCES</div>${rank}
+    <div class="lp-h">DERNIERS FLUX</div>${feeds.slice(-4).reverse().map(f => `<div style="font-size:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span style="color:var(--accent)">${esc(f.source)}</span> · ${esc(f.category)}<br><span style="color:var(--faint)">${esc(f.ts)}</span></div>`).join("")}
+    <button class="addbtn" id="addEntity">+ AJOUTER AU DOSSIER INDICE</button>`;
+  document.getElementById("leftpanel").classList.remove("collapsed");
+  document.getElementById("panelToggle").classList.add("shift");
+  document.getElementById("addEntity").addEventListener("click", () => {
+    window.dispatchEvent(new CustomEvent("indice:add-entity", { detail: { kind: "city", city: city, feeds: feeds } }));
+    const b = document.getElementById("addEntity"); b.textContent = "✓ ÉMIS VERS INDICE"; setTimeout(() => { b.textContent = "+ AJOUTER AU DOSSIER INDICE"; }, 1600);
+  });
+}
+
+/* ---------------- City tactical view ---------------- */
+function openCity(city) {
+  S.city = city; selectCity(city);
+  document.getElementById("cityname").textContent = city.toUpperCase();
+  const svg = document.getElementById("citysvg"); const W = innerWidth, H = innerHeight;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  let g = "";
+  for (let x = 0; x <= W; x += 70) g += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="rgba(120,132,138,0.10)"/>`;
+  for (let y = 0; y <= H; y += 70) g += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="rgba(120,132,138,0.10)"/>`;
+  for (let k = 0; k < 7; k++) { const bx = 120 + Math.random() * (W - 300), by = 120 + Math.random() * (H - 260), bw = 70 + Math.random() * 150, bh = 50 + Math.random() * 120; g += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#2b3237" stroke="#3e4447"/>`; }
+  svg.innerHTML = g;
+  const marks = document.getElementById("citymarks"); marks.innerHTML = "";
+  const feeds = (window.INDICE_GEO_CONFIG.feeds || []).filter(f => f.city === city);
+  const c = window.INDICE_GEO_CONFIG.cities[city];
+  feeds.forEach(f => {
+    const dx = (f.lon - c.lon), dy = (f.lat - c.lat);
+    const px = W / 2 + dx * 2600, py = H / 2 - dy * 2600;
+    const el = document.createElement("div"); el.className = "cmark";
+    el.style.left = Math.min(W - 110, Math.max(110, px)) + "px"; el.style.top = Math.min(H - 70, Math.max(90, py)) + "px";
+    el.innerHTML = `<div class="fh">${esc(f.source)} · ${esc(f.category)}</div><div class="ft">${esc(f.text)}</div><div style="font-size:8px;color:var(--faint);margin-top:3px">${esc(f.ts)}</div>`;
+    marks.appendChild(el);
+  });
+  document.getElementById("cityview").classList.add("show");
+}
+function backGlobe() { S.city = null; document.getElementById("cityview").classList.remove("show"); }
+
+/* ---------------- Bottom counters ---------------- */
+function counters() {
+  const by = {}; filtered().forEach(f => by[f.category] = (by[f.category] || 0) + 1);
+  const cfg = window.INDICE_GEO_CONFIG;
+  document.getElementById("bottombar").innerHTML = cfg.categories.map(c =>
+    `<span class="cnt" style="color:${cfg.catColor[c]}">${esc(c)} <b>${by[c] || 0}</b></span>`).join("")
+    + `<span class="cnt">TOTAL <b>${filtered().length}</b></span>`;
+}
+
+/* ---------------- Public API ---------------- */
+function updateFeeds(items) {
+  if (S.frozen || !items) return;
+  const arr = window.INDICE_GEO_CONFIG.feeds, seen = {}; arr.forEach(f => seen[f.id] = 1);
+  (Array.isArray(items) ? items : [items]).forEach(it => { if (it && it.id && !seen[it.id]) arr.push(it); });
+  if (arr.length > 80) window.INDICE_GEO_CONFIG.feeds = arr.slice(-80);
+  rebuildActivity(); counters();
+}
+window.updateFeeds = updateFeeds;
+
+/* ---------------- Boot ---------------- */
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function fillCitySelect() {
+  const sel = document.getElementById("citysel");
+  Object.keys(window.INDICE_GEO_CONFIG.cities).forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; sel.appendChild(o); });
+}
+function wireUI() {
+  document.getElementById("catsel").addEventListener("change", () => { rebuildActivity(); counters(); });
+  document.getElementById("citysel").addEventListener("change", (e) => { rebuildActivity(); counters(); if (e.target.value !== "all") openCity(e.target.value); });
+  document.getElementById("timesel").addEventListener("change", () => { rebuildActivity(); counters(); });
+  document.getElementById("freezebtn").addEventListener("click", (e) => { S.frozen = !S.frozen; e.target.classList.toggle("on", S.frozen); e.target.textContent = S.frozen ? "FIGÉ" : "FREEZE"; });
+  document.getElementById("orbitbtn").addEventListener("click", (e) => { S.autoRotate = !S.autoRotate; e.target.textContent = "ORBITE : " + (S.autoRotate ? "LENTE" : "PAUSE"); });
+  document.getElementById("panelToggle").addEventListener("click", () => {
+    const p = document.getElementById("leftpanel"); p.classList.toggle("collapsed");
+    document.getElementById("panelToggle").classList.toggle("shift", !p.classList.contains("collapsed"));
+  });
+  document.getElementById("backglobe").addEventListener("click", backGlobe);
+  document.getElementById("panelToggle").classList.add("shift");
+}
+function startStream() {
+  try {
+    const es = new EventSource("/api/geospatial/stream");
+    es.onmessage = (ev) => { try { updateFeeds(JSON.parse(ev.data)); } catch (e) { } };
+    es.onerror = () => { /* keep demo data if stream unavailable */ };
+  } catch (e) { }
+}
+(function boot() {
+  if (typeof THREE === "undefined") { document.body.insertAdjacentHTML("beforeend", "<div style='position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#c0392b'>Three.js non chargé (vérifie la connexion CDN).</div>"); return; }
+  fillCitySelect(); wireUI(); counters();
+  fetch("/world.geojson").then(r => r.json()).then(geo => { initThree(geo); })
+    .catch(() => { initThree({ features: [] }); });
+  fetch("/api/geospatial/snapshot").then(r => r.json()).then(d => updateFeeds(d.items || [])).catch(() => { });
+  startStream();
+})();
+</script>
+</body>
+</html>
