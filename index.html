@@ -133,7 +133,7 @@ window.INDICE_GEO_CONFIG = {
 
 /* ---------------- Three globe ---------------- */
 const R = 2, S = { three: null, frozen: false, autoRotate: true, city: null };
-let scene, camera, renderer, controls, globe, cityMeshes = [], spikeGroup, arcGroup;
+let scene, camera, renderer, controls, globe, cityMeshes = [], spikeGroup;
 
 function llToVec(lat, lon, r) {
   const phi = (90 - lat) * Math.PI / 180, th = (lon + 180) * Math.PI / 180;
@@ -182,7 +182,7 @@ function initThree(geo) {
     fragmentShader: "varying vec3 vN; void main(){ float i=pow(0.62-dot(vN,vec3(0,0,1.0)),2.0); gl_FragColor=vec4(0.55,0.72,0.70,1.0)*i*0.9; }"
   }));
   scene.add(atm);
-  spikeGroup = new THREE.Group(); arcGroup = new THREE.Group(); scene.add(spikeGroup); scene.add(arcGroup);
+  spikeGroup = new THREE.Group(); scene.add(spikeGroup);
   // city click markers
   Object.keys(window.INDICE_GEO_CONFIG.cities).forEach(city => {
     const c = window.INDICE_GEO_CONFIG.cities[city];
@@ -193,7 +193,8 @@ function initThree(geo) {
   controls.enableDamping = true; controls.dampingFactor = .08; controls.minDistance = 3; controls.maxDistance = 9;
   controls.autoRotate = true; controls.autoRotateSpeed = 0.35; controls.enablePan = false;
   addEventListener("resize", onResize);
-  renderer.domElement.addEventListener("pointerdown", onPointerDown);
+  renderer.domElement.addEventListener("pointerdown", (e) => { S._down = { x: e.clientX, y: e.clientY }; });
+  renderer.domElement.addEventListener("pointerup", onPointerUp);
   rebuildActivity();
   animate();
 }
@@ -205,7 +206,6 @@ function activeCities() {
 }
 function rebuildActivity() {
   while (spikeGroup.children.length) spikeGroup.remove(spikeGroup.children[0]);
-  while (arcGroup.children.length) arcGroup.remove(arcGroup.children[0]);
   const act = activeCities(), cfg = window.INDICE_GEO_CONFIG, keys = Object.keys(act);
   keys.forEach(city => {
     const c = cfg.cities[city]; if (!c) return;
@@ -213,14 +213,6 @@ function rebuildActivity() {
     const g = new THREE.BufferGeometry().setFromPoints([base, top]);
     spikeGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x37e2a0, transparent: true, opacity: .9 })));
   });
-  for (let i = 0; i < keys.length; i++) {
-    const a = cfg.cities[keys[i]], b = cfg.cities[keys[(i + 1) % keys.length]]; if (!a || !b || keys.length < 2) break;
-    const va = llToVec(a.lat, a.lon, R), vb = llToVec(b.lat, b.lon, R);
-    const mid = va.clone().add(vb).multiplyScalar(0.5).normalize().multiplyScalar(R + va.distanceTo(vb) * 0.5);
-    const curve = new THREE.QuadraticBezierCurve3(va, mid, vb);
-    const g = new THREE.BufferGeometry().setFromPoints(curve.getPoints(40));
-    arcGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x37e2a0, transparent: true, opacity: .32 })));
-  }
 }
 
 /* ---------------- Filters ---------------- */
@@ -257,7 +249,7 @@ function overlay() {
       el = document.createElement("div"); el.className = "feedcard"; cardEls[f.id] = el;
       el.innerHTML = `<div class="fh"><span>${esc(f.source)}</span><span>${esc(f.city)}</span></div>
         <div class="fc">${esc(f.category)}</div><div class="ft">${esc(f.text)}</div><div class="fd">${esc(f.ts)}</div>`;
-      el.addEventListener("click", () => { openCity(f.city); });
+      el.addEventListener("click", () => { selectCity(f.city); });
       document.getElementById("feeds").appendChild(el);
     }
     const nearPanel = sx < panelW + 36;
@@ -273,13 +265,15 @@ function overlay() {
 }
 
 /* ---------------- Interaction ---------------- */
-function onPointerDown(e) {
-  if (S.city) return;
+function onPointerUp(e) {
+  if (S.city || !S._down) { S._down = null; return; }
+  const moved = Math.hypot(e.clientX - S._down.x, e.clientY - S._down.y); S._down = null;
+  if (moved > 6) return; // drag to rotate, not a click
   const r = renderer.domElement.getBoundingClientRect();
   const mouse = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   const ray = new THREE.Raycaster(); ray.setFromCamera(mouse, camera);
   const hit = ray.intersectObjects(cityMeshes);
-  if (hit.length) { const city = hit[0].object.userData.city; selectCity(city); }
+  if (hit.length) openCity(hit[0].object.userData.city);
 }
 function animate() {
   requestAnimationFrame(animate);

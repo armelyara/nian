@@ -1,6 +1,6 @@
 # Nian
 
-Standalone geospatial live map (Kaspersky-style globe) in vanilla JS + Three.js (CDN),
+Standalone live map (tactical globe) in vanilla JS + Three.js (CDN),
 served by FastAPI. Designed to feed entities into Indice via the
 `indice:add-entity` CustomEvent.
 
