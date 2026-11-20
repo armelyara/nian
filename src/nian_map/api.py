@@ -70,7 +70,7 @@ def feeds(
     c=Depends(ctx),
 ):
     if category and category not in CATEGORIES:
-        raise HTTPException(422, "Catégorie inconnue.")
+        raise HTTPException(422, "Unknown category.")
     return FeedPage(items=c.feeds.list(category=category, city=city, before=before, since=since, limit=limit))
 
 
@@ -80,7 +80,7 @@ async def stream(request: Request, c=Depends(ctx)):
         sub = c.broker.subscribe()
         queue = sub.__enter__()
     except TooManySubscribers:
-        raise HTTPException(503, "Trop de connexions temps réel.", headers={"Retry-After": "30"})
+        raise HTTPException(503, "Too many live connections.", headers={"Retry-After": "30"})
 
     async def gen():
         try:
@@ -108,9 +108,9 @@ async def search(
 ):
     q, place = q.strip(), place.strip()
     if not q and not place:
-        raise HTTPException(422, "Requête vide.")
+        raise HTTPException(422, "Empty query.")
     if not c.youtube.enabled:
-        raise HTTPException(503, "Recherche désactivée : NIAN_YOUTUBE_KEY manquante.")
+        raise HTTPException(503, "Search disabled: NIAN_YOUTUBE_KEY is missing.")
 
     key = json.dumps([q.lower(), place.lower(), limit])
     cached = search_cache.get(key)
@@ -118,7 +118,7 @@ async def search(
         return cached.model_copy(update={"cached": True})
 
     if not await run_in_threadpool(c.quota.try_consume, "youtube.search", settings.youtube_daily_search_budget):
-        raise HTTPException(429, "Budget quotidien de recherche atteint.")
+        raise HTTPException(429, "Daily search budget reached.")
 
     geo = await c.geocoder.geocode(place) if place else None
     try:

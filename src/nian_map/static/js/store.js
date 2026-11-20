@@ -94,7 +94,7 @@ export function groupByCity(feeds) {
   return [...by.values()].sort((a, b) => b.n - a.n);
 }
 
-// Active search ("ville + sujet"), or null.
+// Active search ("city + topic"), or null.
 store.search = null;
 export function setSearch(s) {
   store.search = s;

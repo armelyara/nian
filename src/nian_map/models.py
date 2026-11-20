@@ -8,12 +8,12 @@ from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 CATEGORIES: dict[str, str] = {
     "Concerts": "#E78D38",
-    "Manifestations": "#D97B22",
+    "Protests": "#D97B22",
     "Incidents": "#e5443b",
     "Tech": "#74A5CC",
-    "Autre": "#8a9599",
+    "Other": "#8a9599",
 }
-Category = Literal["Concerts", "Manifestations", "Incidents", "Tech", "Autre"]
+Category = Literal["Concerts", "Protests", "Incidents", "Tech", "Other"]
 Precision = Literal["exact", "city", "region"]
 
 YOUTUBE_EMBED_PREFIX = "https://www.youtube-nocookie.com/embed/"
@@ -30,7 +30,7 @@ class FeedItem(BaseModel):
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
     precision: Precision = "city"
-    category: Category = "Autre"
+    category: Category = "Other"
     text: str = Field(default="", max_length=500)
     author: str = Field(default="", max_length=120)
     url: HttpUrl | None = None

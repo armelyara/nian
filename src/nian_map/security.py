@@ -83,10 +83,10 @@ def require_token(request: Request) -> None:
         return
     supplied = request.headers.get("x-nian-token", "")
     if not hmac.compare_digest(supplied.encode(), settings.api_token.encode()):
-        raise HTTPException(status_code=401, detail="Jeton invalide.")
+        raise HTTPException(status_code=401, detail="Invalid token.")
 
 
 def limit_search(request: Request) -> None:
     if not search_limiter.check(client_ip(request)):
-        raise HTTPException(status_code=429, detail="Trop de recherches, réessaie dans une minute.",
+        raise HTTPException(status_code=429, detail="Too many searches, try again in a minute.",
                             headers={"Retry-After": "60"})

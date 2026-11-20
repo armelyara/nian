@@ -3,9 +3,9 @@ const NETS = {
   X: { code: "X", name: "X", kind: "posts", format: "text" },
   Twitter: { code: "X", name: "X", kind: "posts", format: "text" },
   Instagram: { code: "IG", name: "Instagram", kind: "photos", format: "photo" },
-  TikTok: { code: "TT", name: "TikTok", kind: "vidéos", format: "tt" },
+  TikTok: { code: "TT", name: "TikTok", kind: "videos", format: "tt" },
   Facebook: { code: "FB", name: "Facebook", kind: "posts", format: "text" },
-  YouTube: { code: "YT", name: "YouTube", kind: "vidéos", format: "yt" },
+  YouTube: { code: "YT", name: "YouTube", kind: "videos", format: "yt" },
 };
 const ORDER = ["X", "TT", "IG", "FB", "YT"];
 
@@ -37,5 +37,5 @@ export function ago(ts) {
   const s = Math.max(0, (Date.now() - t) / 1000);
   if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min`;
   if (s < 86400) return `${Math.round(s / 3600)} h`;
-  return `${Math.round(s / 86400)} j`;
+  return `${Math.round(s / 86400)} d`;
 }

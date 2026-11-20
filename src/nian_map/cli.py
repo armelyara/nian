@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None) -> None:
     has_key = bool(os.environ.get("NIAN_YOUTUBE_KEY") or os.environ.get("YOUTUBE_API_KEY"))
     url = f"http://{'localhost' if args.host in ('127.0.0.1', '0.0.0.0') else args.host}:{args.port}"
     print(f"Nian {__version__} → {url}")
-    print(f"  YouTube : {'clé détectée' if has_key else 'aucune clé (recherche et collecte désactivées)'}")
+    print(f"  YouTube: {'key detected' if has_key else 'no key (search and collection disabled)'}")
     if args.open:
         webbrowser.open(url)
     uvicorn.run("nian_map.main:app", host=args.host, port=args.port, reload=args.dev,

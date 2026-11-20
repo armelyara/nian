@@ -1,7 +1,7 @@
 // World geometry (Natural Earth via world-atlas) and country lookup.
 /* global topojson, d3 */
 
-const regionNames = new Intl.DisplayNames(["fr"], { type: "region" });
+const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 const geo = { low: null, mid: null, land: null, iso: {}, byId: new Map() };
 const lookupCache = new Map();
 

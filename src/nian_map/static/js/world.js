@@ -1,4 +1,4 @@
-// Monde — orthographic globe drawn with d3-geo on a full-screen canvas, in the
+// World — orthographic globe drawn with d3-geo on a full-screen canvas, in the
 // design's palette. The globe keeps the design's place and size (centred,
 // 760 px stage) but the canvas covers the whole screen so zooming in never
 // clips it.

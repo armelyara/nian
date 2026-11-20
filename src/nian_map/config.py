@@ -15,7 +15,7 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 DEFAULT_DATA_DIR = Path.home() / ".nian"
 
 # Cities collected automatically so the globe is never empty (YouTube key required).
-DEFAULT_CITIES = "Abidjan,Paris,Lagos,Dakar,Montréal,Le Caire,Tokyo,Londres"
+DEFAULT_CITIES = "Abidjan,Paris,Lagos,Dakar,Montreal,Cairo,Tokyo,London"
 
 
 def load_dotenv(path: Path | str = ".env") -> None:

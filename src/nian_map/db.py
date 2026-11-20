@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS quota_usage (
 """
 
 SEED_PLACES = [
-    # Cities shown in the design (Monde + Côte d'Ivoire), plus the v1 set.
+    # Cities shown in the design (World + Côte d'Ivoire), plus the v1 set.
     ("abidjan", "Abidjan", 5.3599, -4.0083),
     ("bouaké", "Bouaké", 7.6906, -5.0300),
     ("yamoussoukro", "Yamoussoukro", 6.8276, -5.2893),
@@ -62,15 +62,25 @@ SEED_PLACES = [
     ("man", "Man", 7.4125, -7.5538),
     ("dakar", "Dakar", 14.7167, -17.4677),
     ("lagos", "Lagos", 6.5244, 3.3792),
-    ("le caire", "Le Caire", 30.0444, 31.2357),
+    ("cairo", "Cairo", 30.0444, 31.2357),
     ("nairobi", "Nairobi", -1.2921, 36.8219),
     ("johannesburg", "Johannesburg", -26.2041, 28.0473),
-    ("londres", "Londres", 51.5072, -0.1276),
+    ("london", "London", 51.5072, -0.1276),
     ("paris", "Paris", 48.8566, 2.3522),
-    ("montréal", "Montréal", 45.5019, -73.5674),
+    ("montreal", "Montreal", 45.5019, -73.5674),
     ("tokyo", "Tokyo", 35.6762, 139.6503),
-    ("singapour", "Singapour", 1.3521, 103.8198),
+    ("singapore", "Singapore", 1.3521, 103.8198),
 ]
+
+
+# Idempotent upgrades for databases created by the French-language versions:
+# English category names, and the old French seed cities are unpinned (kept
+# as geocoding cache) so they don't show up twice next to the English ones.
+MIGRATIONS = """
+UPDATE feed_items SET category = 'Protests' WHERE category = 'Manifestations';
+UPDATE feed_items SET category = 'Other'    WHERE category = 'Autre';
+UPDATE places SET pinned = 0 WHERE key IN ('le caire', 'londres', 'montréal', 'singapour');
+"""
 
 
 class Database:
@@ -90,6 +100,7 @@ class Database:
             self._conn.executemany(
                 "INSERT OR IGNORE INTO places(key,name,lat,lon,pinned) VALUES (?,?,?,?,1)", SEED_PLACES
             )
+            self._conn.executescript(MIGRATIONS)
 
     def execute(self, sql: str, params: tuple | dict = ()) -> list[sqlite3.Row]:
         with self._lock:

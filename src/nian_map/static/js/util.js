@@ -1,7 +1,7 @@
 // Shared helpers. DOM is built with textContent, never innerHTML with data.
 
 export const EMBED_PREFIX = "https://www.youtube-nocookie.com/embed/";
-const MONTHS = ["JAN", "FÉV", "MAR", "AVR", "MAI", "JUIN", "JUIL", "AOÛT", "SEP", "OCT", "NOV", "DÉC"];
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
 export function fmtTs(ts) {
   const d = new Date(ts);

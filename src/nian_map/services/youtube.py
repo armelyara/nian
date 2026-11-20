@@ -41,7 +41,7 @@ class YouTubeCollector:
 
     @staticmethod
     def _terms(q: str, place: Place | None) -> str:
-        # Avoid "France élection France": only append the place if absent.
+        # Avoid "France election France": only append the place if absent.
         if place and place.name.lower() not in q.lower():
             return f"{q} {place.name}".strip()
         return q
@@ -63,15 +63,15 @@ class YouTubeCollector:
                                       headers={"X-Goog-Api-Key": self.api_key}, timeout=10.0)
         except httpx.HTTPError as exc:
             log.error("youtube network error: %s", exc)
-            raise CollectorError("Service YouTube injoignable.") from exc
+            raise CollectorError("YouTube service unreachable.") from exc
         if r.status_code == 403:
             log.error("youtube 403: %s", r.text[:300])
-            raise CollectorError("Quota YouTube épuisé ou clé refusée.")
+            raise CollectorError("YouTube quota exhausted or key rejected.")
         if r.status_code >= 400:
             log.error("youtube %s: %s", r.status_code, r.text[:300])
-            raise CollectorError("Erreur du service YouTube.")
+            raise CollectorError("YouTube service error.")
 
-        center = place or Place(name="Monde", lat=20.0, lon=0.0)
+        center = place or Place(name="World", lat=20.0, lon=0.0)
         items: list[FeedItem] = []
         for raw in r.json().get("items", []):
             vid = (raw.get("id") or {}).get("videoId", "")

@@ -18,11 +18,11 @@ const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
 export function renderCitiesPanel(title, cities, onOpen) {
   const total = cities.reduce((s, c) => s + c.n, 0);
   $("panelTitle").textContent = title;
-  $("panelSub").textContent = `${plural(cities.length, "ville", "villes")} · ${plural(total, "publication", "publications")}`;
+  $("panelSub").textContent = `${plural(cities.length, "city", "cities")} · ${plural(total, "publication", "publications")}`;
   $("panelRows").replaceChildren(...(cities.length
     ? cities.map((c, i) => cityRow(c, i === 0, onOpen))
-    : [h("div", { class: "empty" }, "Aucune publication pour l'instant.")]));
-  $("tabLabel").textContent = "VILLES";
+    : [h("div", { class: "empty" }, "No publications yet.")]));
+  $("tabLabel").textContent = "CITIES";
 }
 
 export function renderNetworksPanel(title, subtitle, feeds) {
@@ -33,8 +33,8 @@ export function renderNetworksPanel(title, subtitle, feeds) {
     h("span", { class: "nm" }, r.name),
     h("span", { class: "kind" }, r.kind),
     h("span", { class: "cnt" }, r.n)));
-  $("panelRows").replaceChildren(...(rows.length ? rows : [h("div", { class: "empty" }, "Aucune publication.")]));
-  $("tabLabel").textContent = "RÉSEAUX";
+  $("panelRows").replaceChildren(...(rows.length ? rows : [h("div", { class: "empty" }, "No publications.")]));
+  $("tabLabel").textContent = "NETWORKS";
 }
 
 export function setPanelOpen(open) {
@@ -46,7 +46,7 @@ export function setPanelOpen(open) {
 export function renderCategoryFooter(categories, feeds) {
   const by = {};
   feeds.forEach((f) => { by[f.category] = (by[f.category] || 0) + 1; });
-  const items = Object.entries(categories).filter(([cat]) => cat !== "Autre").map(([cat, color]) => {
+  const items = Object.entries(categories).filter(([cat]) => cat !== "Other").map(([cat, color]) => {
     const sw = h("span", { class: "sw" });
     sw.style.background = color;
     return h("span", { class: "cat" }, sw, `${cat} `, h("b", {}, by[cat] || 0));

@@ -25,7 +25,7 @@ function img(src) {
 
 const chips = (codes) => h("span", { class: "chips" }, codes.map((c) => h("span", { class: "chip" }, c)));
 
-// Monde — one card per city: "ABIDJAN · 14", latest topic, networks.
+// World — one card per city: "ABIDJAN · 14", latest topic, networks.
 export function worldCard(c, { top, onOpen }) {
   const latest = c.feeds[c.feeds.length - 1];
   const el = h("a", { class: `wcard${top ? " top" : ""}`, href: "#", "aria-label": `${c.city}, ${c.n} publications` },
@@ -38,7 +38,7 @@ export function worldCard(c, { top, onOpen }) {
   return el;
 }
 
-// Pays — one card per city, media on top with its main network.
+// Country — one card per city, media on top with its main network.
 export function countryCard(c, { top, onOpen }) {
   const latest = c.feeds[c.feeds.length - 1];
   const el = h("a", { class: `pcard${top ? " top" : ""}`, href: "#", "aria-label": `${c.city}, ${c.n} publications` },
@@ -58,7 +58,7 @@ function author(f) {
   return f.author || "—";
 }
 
-// Ville — one card per publication, in the format of its network.
+// City — one card per publication, in the format of its network.
 export function postCard(f) {
   const n = net(f.source);
   const source = httpsUrl(f.url);
@@ -76,7 +76,7 @@ export function postCard(f) {
   if (n.format === "tt" || n.format === "yt") {
     // Content shows directly (no "watch live" button): videos play muted inline.
     let media = null;
-    if (embed) media = h("iframe", { src: embed, allow: "autoplay; encrypted-media", loading: "lazy", title: f.text || "vidéo" });
+    if (embed) media = h("iframe", { src: embed, allow: "autoplay; encrypted-media", loading: "lazy", title: f.text || "video" });
     else if (video) {
       media = h("video", { src: video, muted: true, autoplay: true, loop: true, playsinline: true, preload: "metadata" });
       media.muted = true;

@@ -1,11 +1,24 @@
 # Nian
 
-Carte mondiale en direct de l'activité des réseaux sociaux : **globe → pays → ville**.
+Real-time visualization of social-media activity by geolocating publications: **globe → country → city**.
 
-- Le globe tourne en continu ; molette ou pincement pour zoomer, glisser pour le tourner.
-- Une vignette par ville active ; clic sur un pays ou une vignette pour descendre au pays, puis à la ville.
-- Recherche « lieu + sujet » (ex. `Abidjan concert`) : le globe ne garde que les résultats et se tourne vers le lieu.
-- Sans recherche, des vidéos récentes sont collectées automatiquement pour une liste de villes.
+- One card per active city; click a country or a card to drill down to the country, then to the city.
+- "Place + topic" search (e.g. `Abidjan concert`): the globe keeps only the results and turns to the place.
+- Without a search, recent videos are collected automatically for a list of cities.
+
+## Screenshots
+
+**1 · World** — city cards on the globe
+
+![World view: city cards on the globe](https://raw.githubusercontent.com/armelyara/nian/main/assets/screenshots/1-world.png)
+
+**2 · Country** — click on Côte d'Ivoire
+
+![Country view: Côte d'Ivoire and its active cities](https://raw.githubusercontent.com/armelyara/nian/main/assets/screenshots/2-country.png)
+
+**3 · City** — Abidjan + "concert"
+
+![City view: publications for the search "Abidjan concert"](https://raw.githubusercontent.com/armelyara/nian/main/assets/screenshots/3-city.png)
 
 ## Installation
 
@@ -13,51 +26,59 @@ Carte mondiale en direct de l'activité des réseaux sociaux : **globe → pays 
 pip install nian-map
 ```
 
-## Lancer
+## Running
 
 ```bash
-nian --youtube-key AIza...      # puis ouvrir http://localhost:8100
-nian --demo                     # sans clé : données de démonstration
-nian --help                     # toutes les options
+nian --youtube-key AIza...      # then open http://localhost:8100
+nian --demo                     # no key: demo data
+nian --help                     # all options
 ```
 
-La clé peut aussi être mise dans l'environnement ou dans un fichier `.env` du dossier courant :
+The key can also be set in the environment or in a `.env` file in the current directory:
 
 ```
 NIAN_YOUTUBE_KEY=AIza...
 ```
 
-### Clé YouTube
+### YouTube key
 
-Google Cloud Console → activer **YouTube Data API v3** → Identifiants → **Clé API**, à restreindre à cette API.
-Quota gratuit : ≈ 10 000 unités/jour ; une recherche coûte 100 unités. Nian plafonne à 90 recherches/jour
-(`NIAN_YT_DAILY_SEARCHES`), dont 20 toujours réservées aux recherches des utilisateurs.
+Google Cloud Console → enable **YouTube Data API v3** → Credentials → **API key**, restricted to that API.
+Free quota: ≈ 10,000 units/day; one search costs 100 units. Nian caps usage at 90 searches/day
+(`NIAN_YT_DAILY_SEARCHES`), 20 of which are always reserved for user searches.
 
 ## Configuration
 
-| Variable | Défaut | Rôle |
+| Variable | Default | Purpose |
 |---|---|---|
-| `NIAN_YOUTUBE_KEY` | — | clé YouTube Data API v3 |
-| `NIAN_DEFAULT_CITIES` | Abidjan, Paris, Lagos, Dakar, Montréal, Le Caire, Tokyo, Londres | villes collectées automatiquement |
-| `NIAN_REFRESH_HOURS` | 6 | fréquence de la collecte automatique |
-| `NIAN_YT_DAILY_SEARCHES` | 90 | plafond quotidien de recherches YouTube |
-| `NIAN_DB_PATH` | `~/.nian/nian.db` | base SQLite |
-| `NIAN_API_TOKEN` | — | si défini, la recherche exige l'en-tête `X-Nian-Token` |
-| `NIAN_ALLOWED_HOSTS` | — | noms d'hôte autorisés en production |
-| `NIAN_RETENTION_DAYS` | 30 | durée de conservation des publications |
-| `NIAN_GEOCODER_UA` | nian-map | User-Agent envoyé à Nominatim (mettre un contact) |
+| `NIAN_YOUTUBE_KEY` | — | YouTube Data API v3 key |
+| `NIAN_DEFAULT_CITIES` | Abidjan, Paris, Lagos, Dakar, Montreal, Cairo, Tokyo, London | cities collected automatically |
+| `NIAN_REFRESH_HOURS` | 6 | automatic collection interval |
+| `NIAN_YT_DAILY_SEARCHES` | 90 | daily cap on YouTube searches |
+| `NIAN_DB_PATH` | `~/.nian/nian.db` | SQLite database |
+| `NIAN_API_TOKEN` | — | if set, search requires the `X-Nian-Token` header |
+| `NIAN_ALLOWED_HOSTS` | — | allowed host names in production |
+| `NIAN_RETENTION_DAYS` | 30 | how long publications are kept |
+| `NIAN_GEOCODER_UA` | nian-map | User-Agent sent to Nominatim (include a contact) |
 
 ## Production
 
-Derrière un reverse proxy TLS (Caddy, Nginx) :
+Behind a TLS reverse proxy (Caddy, Nginx):
 
 ```bash
 nian --host 127.0.0.1 --port 8100
 ```
 
-Un seul processus : la diffusion temps réel et la limitation de débit sont en mémoire.
+Single process only: real-time broadcasting and rate limiting are kept in memory.
 
-## Données et licences
+## Data and licenses
 
-Cartes : Natural Earth via world-atlas (domaine public). Bibliothèques incluses : d3-geo, d3-array,
-topojson-client (ISC) ; polices IBM Plex (SIL OFL 1.1).
+Maps: Natural Earth via world-atlas (public domain). Bundled libraries: d3-geo, d3-array,
+topojson-client (ISC); IBM Plex fonts (SIL OFL 1.1).
+
+## License
+
+Nian is licensed under the [Apache License 2.0](LICENSE).
+
+---
+
+Nian is powered by [The Day Info](https://thedayinfo.com).

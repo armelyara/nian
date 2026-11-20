@@ -1,4 +1,4 @@
-// Pays and Ville — flat Mercator maps drawn with d3-geo, exactly in the
+// Country and City — flat Mercator maps drawn with d3-geo, exactly in the
 // design's style: dark sea, faint graticule, land #151A1C/#161B1D, white
 // borders at 14 %, selected country outlined in accent.
 /* global d3 */

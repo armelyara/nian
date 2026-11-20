@@ -12,7 +12,7 @@ async function getJSON(url, { signal, headers = {} } = {}) {
   const r = await fetch(url, { signal, headers: { Accept: "application/json", ...headers } });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) {
-    const msg = typeof body.detail === "string" ? body.detail : `Erreur ${r.status}`;
+    const msg = typeof body.detail === "string" ? body.detail : `Error ${r.status}`;
     throw new Error(msg);
   }
   return body;

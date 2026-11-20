@@ -5,8 +5,8 @@ from __future__ import annotations
 import unicodedata
 
 RULES: list[tuple[str, tuple[str, ...]]] = [
-    ("Incidents", ("incident", "accident", "attaque", "explosion", "fusillade", "crash", "emeute", "incendie")),
-    ("Manifestations", ("manif", "election", "campagne", "greve", "protest", "marche", "presidentielle", "rassemblement")),
+    ("Incidents", ("incident", "accident", "attaque", "attack", "explosion", "fusillade", "shooting", "crash", "emeute", "riot", "incendie")),
+    ("Protests", ("manif", "election", "campagne", "campaign", "greve", "strike", "protest", "marche", "presidentielle", "rassemblement", "rally")),
     ("Concerts", ("concert", "festival", "show", "musique", "music", "live set")),
     ("Tech", ("tech", "startup", "developpeur", "developer", "ia ", " ai ", "hackathon", "meetup")),
 ]
@@ -22,4 +22,4 @@ def categorize(text: str) -> str:
     for cat, words in RULES:
         if any(w in t for w in words):
             return cat
-    return "Autre"  # unknown stays unknown instead of defaulting to "Tech"
+    return "Other"  # unknown stays unknown instead of defaulting to "Tech"

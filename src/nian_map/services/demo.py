@@ -22,14 +22,14 @@ VIDEOS = [
     "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
 ]
 SNIPPETS = [
-    ("Concert ce soir, la foule commence à arriver", "Concerts"),
-    ("Scène principale, ambiance en cours", "Concerts"),
-    ("Foule compacte sur la place centrale", "Manifestations"),
-    ("Rassemblement devant la mairie", "Manifestations"),
-    ("Ralentissement signalé sur l'axe principal", "Incidents"),
-    ("Circulation dense à l'approche du centre", "Incidents"),
-    ("Meetup développeurs, démo en cours", "Tech"),
-    ("Programme de la soirée et horaires d'ouverture", "Concerts"),
+    ("Concert tonight, the crowd is starting to arrive", "Concerts"),
+    ("Main stage, the show is on", "Concerts"),
+    ("Packed crowd on the main square", "Protests"),
+    ("Rally in front of city hall", "Protests"),
+    ("Slowdown reported on the main road", "Incidents"),
+    ("Heavy traffic approaching downtown", "Incidents"),
+    ("Developer meetup, live demo in progress", "Tech"),
+    ("Tonight's line-up and opening hours", "Concerts"),
 ]
 # (source, weight, carries a video)
 NETWORKS = [("X", 3, False), ("TikTok", 3, True), ("Instagram", 2, False), ("Facebook", 1, False), ("YouTube", 1, True)]
@@ -43,7 +43,7 @@ def demo_item(places: list[Place]) -> FeedItem:
     return FeedItem(
         id=f"demo_{secrets.token_hex(6)}", source=source, city=p.name,
         lat=p.lat + random.uniform(-0.05, 0.05), lon=p.lon + random.uniform(-0.05, 0.05),
-        precision="city", category=cat, text=f"[DÉMO] {text}",
+        precision="city", category=cat, text=f"[DEMO] {text}",
         author=random.choice(AUTHORS), video=random.choice(VIDEOS) if has_video else None,
     )
 

@@ -1,4 +1,4 @@
-// Composition root: data, routing (Monde → Pays → Ville) and UI events.
+// Composition root: data, routing (World → Country → City) and UI events.
 import { api } from "./api.js";
 import { countryAt, countryById, loadWorld } from "./geo.js";
 import { createMapView } from "./mapview.js";
@@ -16,15 +16,15 @@ let panelOpen = false;
 
 // ---------- routing (hash, so the browser Back button works) ----------
 function parseHash() {
-  const [, view, arg] = decodeURIComponent(location.hash).match(/^#\/(monde|pays|ville)(?:\/(.+))?$/) || [];
-  if (view === "pays" && arg && countryById(arg)) return { view: "country", country: countryById(arg) };
-  if (view === "ville" && arg) return { view: "city", city: arg };
+  const [, view, arg] = decodeURIComponent(location.hash).match(/^#\/(world|country|city)(?:\/(.+))?$/) || [];
+  if (view === "country" && arg && countryById(arg)) return { view: "country", country: countryById(arg) };
+  if (view === "city" && arg) return { view: "city", city: arg };
   return { view: "world" };
 }
 const go = {
-  world: () => { location.hash = "#/monde"; },
-  country: (f) => { location.hash = `#/pays/${encodeURIComponent(f.key)}`; },
-  city: (name) => { location.hash = `#/ville/${encodeURIComponent(name)}`; },
+  world: () => { location.hash = "#/world"; },
+  country: (f) => { location.hash = `#/country/${encodeURIComponent(f.key)}`; },
+  city: (name) => { location.hash = `#/city/${encodeURIComponent(name)}`; },
 };
 
 function countryOfCity(c) {
@@ -56,9 +56,9 @@ function renderWorld(feeds) {
   const cities = groupByCity(feeds);
   world.refresh();
   crumbs(store.search
-    ? [{ label: "MONDE", href: "#/monde" }, { label: `RECHERCHE « ${store.search.text.toUpperCase()} »` }]
-    : [{ label: "MONDE" }]);
-  renderCitiesPanel("MONDE", cities, openCityFromCard);
+    ? [{ label: "WORLD", href: "#/world" }, { label: `SEARCH "${store.search.text.toUpperCase()}"` }]
+    : [{ label: "WORLD" }]);
+  renderCitiesPanel("WORLD", cities, openCityFromCard);
   renderCategoryFooter(store.categories, feeds);
 }
 
@@ -67,7 +67,7 @@ function renderCountry(feeds) {
   const cities = groupByCity(feeds).filter((c) => countryOfCity(c) === f);
   const scoped = cities.flatMap((c) => c.feeds);
   map.showCountry(f, cities);
-  crumbs([{ label: "MONDE", href: "#/monde" }, { label: f.label.toUpperCase() }]);
+  crumbs([{ label: "WORLD", href: "#/world" }, { label: f.label.toUpperCase() }]);
   renderCitiesPanel(f.label, cities, (c) => go.city(c.city));
   renderCategoryFooter(store.categories, scoped);
 }
@@ -80,13 +80,13 @@ function renderCity(feeds) {
   map.showCity(name, center, cityFeeds);
   const country = countryAt(center.lon, center.lat);
   crumbs([
-    { label: "MONDE", href: "#/monde" },
-    ...(country ? [{ label: country.label.toUpperCase(), href: `#/pays/${encodeURIComponent(country.key)}` }] : []),
+    { label: "WORLD", href: "#/world" },
+    ...(country ? [{ label: country.label.toUpperCase(), href: `#/country/${encodeURIComponent(country.key)}` }] : []),
     { label: name.toUpperCase() },
   ]);
   const title = s && s.topic ? `${name} · ${s.topic}` : name;
-  renderNetworksPanel(title, s ? "Le même sujet, tous réseaux confondus" : "Toutes les publications, par réseau", cityFeeds);
-  renderLabelFooter(s ? `RECHERCHE « ${s.topic || s.text} » · ${name}` : `PUBLICATIONS · ${name}`, cityFeeds.length);
+  renderNetworksPanel(title, s ? "The same topic, across all networks" : "All publications, by network", cityFeeds);
+  renderLabelFooter(s ? `SEARCH "${s.topic || s.text}" · ${name}` : `PUBLICATIONS · ${name}`, cityFeeds.length);
 }
 
 let scheduled = false;
@@ -130,7 +130,7 @@ function fitStages() {
   $("mapStage").style.transform = `scale(${Math.max(0.35, ms)})`;
 }
 
-// ---------- search: "ville + sujet" ----------
+// ---------- search: "city + topic" ----------
 function stripPlace(text, placeName) {
   const fold = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const placeWords = new Set(fold(placeName).split(/[\s,'-]+/));
@@ -149,7 +149,7 @@ async function doSearch() {
     if (r.place) addPlaces([r.place]);
     addFeeds(r.items);
     const city = r.place?.name || r.items[0]?.city;
-    if (!r.items.length || !city) { toast("Aucun résultat."); return; }
+    if (!r.items.length || !city) { toast("No results."); return; }
     // Stay on the globe: only the matching cards remain, the globe turns to
     // the place; the user then clicks a card to go down to country / city.
     setSearch({ city, text, topic: stripPlace(text, city), ids: new Set(r.items.map((i) => i.id)) });
@@ -158,7 +158,7 @@ async function doSearch() {
     world.focusOn(target.lon, target.lat);
     render();
   } catch (e) {
-    if (e.name !== "AbortError") toast(`Recherche : ${e.message}`);
+    if (e.name !== "AbortError") toast(`Search: ${e.message}`);
   } finally {
     $("searchbox").classList.remove("busy");
   }
@@ -167,13 +167,13 @@ async function doSearch() {
 // ---------- boot ----------
 async function boot() {
   if (typeof d3 === "undefined" || typeof topojson === "undefined") {
-    toast("Bibliothèques cartographiques non chargées.");
+    toast("Map libraries failed to load.");
     return;
   }
   try {
     await loadWorld();
   } catch {
-    toast("Données géographiques indisponibles.");
+    toast("Geographic data unavailable.");
     return;
   }
 
@@ -197,9 +197,9 @@ async function boot() {
   $("search").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
   const clearSearch = () => { $("search").value = ""; setSearch(null); render(); };
   $("clear").addEventListener("click", (e) => { e.preventDefault(); clearSearch(); });
-  // "MONDE" in the crumbs while a search is shown on the globe = back to everything.
+  // "WORLD" in the crumbs while a search is shown on the globe = back to everything.
   $("crumbs").addEventListener("click", (e) => {
-    if (route.view === "world" && store.search && e.target.closest('a[href="#/monde"]')) { e.preventDefault(); clearSearch(); }
+    if (route.view === "world" && store.search && e.target.closest('a[href="#/world"]')) { e.preventDefault(); clearSearch(); }
   });
   $("filtersbtn").addEventListener("click", () => {
     const f = $("filters");
@@ -228,16 +228,16 @@ async function boot() {
   api.meta().then((m) => {
     store.categories = m.categories;
     for (const cat of Object.keys(m.categories)) $("catsel").append(h("option", { value: cat }, cat));
-    if (!m.search_enabled) $("search").placeholder = "Recherche désactivée (clé YouTube absente)";
+    if (!m.search_enabled) $("search").placeholder = "Search disabled (no YouTube key)";
     render();
-  }).catch(() => toast("API indisponible."));
+  }).catch(() => toast("API unavailable."));
   api.places().then(addPlaces).catch(() => {});
   Promise.all([api.meta(), api.feeds(500)]).then(([m, d]) => {
     addFeeds(d.items);
     if (!d.items.length) {
       toast(m.search_enabled
-        ? "Collecte en cours : les premières vidéos arrivent dans quelques secondes."
-        : "Aucune publication : ajoute ta clé YouTube (NIAN_YOUTUBE_KEY) ou lance « nian --demo ».");
+        ? "Collecting: the first videos will arrive in a few seconds."
+        : "No publications: add your YouTube key (NIAN_YOUTUBE_KEY) or run `nian --demo`.");
     }
   }).catch(() => {});
   api.stream(addFeeds);

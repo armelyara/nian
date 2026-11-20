@@ -25,7 +25,7 @@ class Geocoder:
         self._last_call = 0.0
 
     async def geocode(self, query: str) -> Place | None:
-        """Free-text input like "France élection": try the full string, then at
+        """Free-text input like "France election": try the full string, then at
         most two single-word fallbacks (last, first). Bounded on purpose:
         the v1 loop could fire one upstream call per word."""
         words = [w for w in query.split() if len(w) >= 3]
@@ -50,7 +50,7 @@ class Geocoder:
                 r = await self.client.get(
                     NOMINATIM_URL,
                     params={"q": query, "format": "jsonv2", "limit": 1},
-                    headers={"User-Agent": self.user_agent, "Accept-Language": "fr"},
+                    headers={"User-Agent": self.user_agent, "Accept-Language": "en"},
                     timeout=6.0,
                 )
                 r.raise_for_status()

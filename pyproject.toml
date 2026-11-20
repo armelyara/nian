@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.24"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -7,6 +7,8 @@ name = "nian-map"
 dynamic = ["version"]
 description = "Live world map of social-media activity: globe → country → city."
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Armel" }]
 keywords = ["map", "globe", "social media", "osint", "youtube", "fastapi"]
@@ -23,6 +25,9 @@ dependencies = [
   "httpx>=0.27,<1.0",
 ]
 
+[project.urls]
+Homepage = "https://thedayinfo.com"
+
 [project.scripts]
 nian = "nian_map.cli:main"
 
@@ -33,4 +38,4 @@ path = "src/nian_map/__init__.py"
 packages = ["src/nian_map"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/nian_map", "README.md", "pyproject.toml"]
+include = ["src/nian_map", "README.md", "LICENSE", "pyproject.toml"]
