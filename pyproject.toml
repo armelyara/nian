@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nian-map"
+dynamic = ["version"]
+description = "Live world map of social-media activity: globe → country → city."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Armel" }]
+keywords = ["map", "globe", "social media", "osint", "youtube", "fastapi"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Framework :: FastAPI",
+  "Operating System :: OS Independent",
+  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+  "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "uvicorn[standard]>=0.30,<1.0",
+  "httpx>=0.27,<1.0",
+]
+
+[project.scripts]
+nian = "nian_map.cli:main"
+
+[tool.hatch.version]
+path = "src/nian_map/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nian_map"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/nian_map", "README.md", "pyproject.toml"]
