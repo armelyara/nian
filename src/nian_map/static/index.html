@@ -22,17 +22,23 @@
           <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
           <line x1="10.5" y1="10.5" x2="15" y2="15" stroke="currentColor" stroke-width="1.5"></line>
         </svg>
-        <input id="search" maxlength="120" autocomplete="off" placeholder="Place + topic — e.g. Abidjan concert" aria-label="Search" />
+        <input id="search" maxlength="120" autocomplete="off" placeholder="Place + topic — e.g. Abidjan concert"
+          aria-label="Search" />
         <button class="clear" id="clear" type="button" aria-label="Clear search" hidden>×</button>
       </label>
       <button class="iconbtn" id="filtersbtn" type="button" aria-label="Filters" aria-expanded="false">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+          aria-hidden="true">
+          <path d="M4 6h16M7 12h10M10 18h4"></path>
+        </svg>
       </button>
     </header>
 
     <div class="filters" id="filters" hidden>
       <div class="fh">FILTERS</div>
-      <label>Topic<select id="catsel"><option value="all">All</option></select></label>
+      <label>Topic<select id="catsel">
+          <option value="all">All</option>
+        </select></label>
       <label>Before<input id="datesel" type="date" /></label>
     </div>
 
@@ -42,9 +48,10 @@
       <button type="button" id="zoomout" aria-label="Zoom out">−</button>
     </div>
 
-    <!-- World (full-screen canvas; the globe keeps the design's place) -->
+    <!-- World -->
     <div class="stage world" id="worldStage">
-      <canvas id="globe" aria-label="Globe: drag to rotate, scroll or pinch to zoom, click a country to open it"></canvas>
+      <canvas id="globe"
+        aria-label="Globe: drag to rotate, scroll or pinch to zoom, click a country to open it"></canvas>
       <div class="cards" id="worldCards"></div>
     </div>
 
@@ -59,14 +66,20 @@
       <div class="ph">
         <div class="pt" id="panelTitle"></div>
         <button class="fold" id="fold" type="button" aria-label="Collapse panel">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m5 2 5 5-5 5"></path></svg>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"
+            aria-hidden="true">
+            <path d="m5 2 5 5-5 5"></path>
+          </svg>
         </button>
       </div>
       <div class="ps" id="panelSub"></div>
       <div class="rows" id="panelRows"></div>
     </aside>
     <button class="tab" id="tab" type="button" aria-label="Open panel">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 2 4 7l5 5"></path></svg>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"
+        aria-hidden="true">
+        <path d="M9 2 4 7l5 5"></path>
+      </svg>
       <span id="tabLabel">CITIES</span>
     </button>
 
