@@ -1,4 +1,4 @@
-"""Application factory and wiring (composition root)."""
+"""Application factory and wiring."""
 from __future__ import annotations
 
 import asyncio

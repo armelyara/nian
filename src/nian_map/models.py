@@ -1,4 +1,4 @@
-"""Pydantic schemas: the single source of truth for the feed contract."""
+"""Pydantic schemas: the single source of truth for the feed contract"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -42,7 +42,7 @@ class FeedItem(BaseModel):
     @field_validator("embed")
     @classmethod
     def _only_youtube_embeds(cls, v: str | None) -> str | None:
-        # Embeds become iframe src on the client: never accept arbitrary origins.
+        # Embeds become iframe src on the client.
         if v is not None and not v.startswith(YOUTUBE_EMBED_PREFIX):
             raise ValueError("embed must be a youtube-nocookie embed URL")
         return v
