@@ -9,8 +9,8 @@ import { svg } from "./util.js";
 
 const W = 1000, H = 720;
 const C = {
-  sea: "#0B0E0F", grid: "rgba(255,255,255,.04)", land: "#151A1C", cityLand: "#161B1D",
-  border: "rgba(255,255,255,.14)", sel: "#1E2629", selEdge: "rgba(231,141,56,.6)",
+  sea: "#0B0E0F", grid: "rgba(255,255,255,.06)", land: "#151A1C", cityLand: "#161B1D",
+  border: "rgba(255,255,255,.14)", coast: "rgba(162,179,177,.34)", sel: "#1E2629", selEdge: "rgba(231,141,56,.6)",
   dot: "#E78D38", halo: "rgba(231,141,56,.18)", link: "rgba(231,141,56,.55)",
 };
 
@@ -74,18 +74,26 @@ export function createMapView({ stage, canvas, links, cardLayer, tip, onCity, on
 
   function drawBase() {
     ctx.fillStyle = C.sea; ctx.fillRect(0, 0, W, H);
-    drawGrid();
     const g = world().mid;
     if (mode === "country") {
+      drawGrid();
       ctx.beginPath(); path(g.all); ctx.fillStyle = C.land; ctx.fill();
       ctx.beginPath(); path(g.borders); ctx.strokeStyle = C.border; ctx.lineWidth = 0.8; ctx.stroke();
       ctx.beginPath(); path(country); ctx.fillStyle = C.sel; ctx.fill();
       ctx.strokeStyle = C.selEdge; ctx.lineWidth = 1.2; ctx.stroke();
     } else {
+      // City view: fill land, draw the graticule ON TOP (so it stays visible
+      // even when the whole viewport is inland), then stroke the coastline.
       const polys = landIn(viewBounds());
-      ctx.fillStyle = C.cityLand;
-      for (const p of polys) { ctx.beginPath(); path(p); ctx.fill(); }
-      if (!polys.length) { ctx.beginPath(); path(g.all); ctx.fill(); } // 10 m land not loaded yet
+      const trace = () => { ctx.beginPath(); for (const p of polys) path(p); };
+      if (polys.length) {
+        trace(); ctx.fillStyle = C.cityLand; ctx.fill();
+        drawGrid();
+        trace(); ctx.strokeStyle = C.coast; ctx.lineWidth = 1; ctx.stroke();
+      } else {
+        drawGrid();
+        ctx.beginPath(); path(g.all); ctx.fillStyle = C.cityLand; ctx.fill(); // 10 m land not loaded yet
+      }
     }
   }
 
